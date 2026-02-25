@@ -1,0 +1,383 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* shadcn CSS Variables with Primark Brand Colors */
+@layer base {
+  :root {
+    --background: 210 40% 98%;       /* #f8fafc - Light background */
+    --foreground: 215 25% 20%;       /* #1F2937 - Soft dark grey, premium feel */
+
+    --card: 0 0% 100%;               /* white */
+    --card-foreground: 215 25% 20%;  /* #1F2937 - Matching soft grey */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 20%;
+
+    --primary: 195 100% 43%;         /* #00AFDB - Primark Cyan */
+    --primary-foreground: 0 0% 100%; /* white */
+
+    --secondary: 210 40% 96%;        /* slate-100 */
+    --secondary-foreground: 215 25% 20%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 50%; /* Slightly lighter for muted text */
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 215 25% 20%;
+
+    --destructive: 0 84% 60%;        /* Red for errors */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 195 100% 43%;            /* Primark Cyan for focus ring */
+
+    --radius: 0.75rem;               /* 12px - Card border radius */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 195 100% 50%;         /* Lighter cyan for dark mode */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 195 100% 50%;
+  }
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent overscroll bounce on iOS */
+    overscroll-behavior: none;
+  }
+
+  /* Safe area padding for PWA */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Component utilities */
+@layer components {
+  /* Status indicator pulse animation */
+  .status-pulse {
+    @apply relative;
+  }
+
+  .status-pulse::before {
+    content: '';
+    @apply absolute inset-0 rounded-full animate-ping opacity-75;
+    background-color: inherit;
+  }
+
+  /* AI gradient background - Primark Cyan */
+  .ai-gradient {
+    background: linear-gradient(135deg, #00AFDB, #4dcae8);
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t border-border;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Content padding to account for bottom nav + safe area */
+  .pb-nav-safe {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Position above bottom nav + safe area */
+  .bottom-nav-safe {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Pull to refresh indicator */
+  .pull-indicator {
+    @apply flex items-center justify-center py-4 text-muted-foreground;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch action utilities */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Fix for 100vh on mobile */
+  .h-screen-safe {
+    height: 100dvh;
+  }
+
+  .min-h-screen-safe {
+    min-height: 100dvh;
+  }
+
+  /* Page entrance animations */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-scale {
+    animation: fadeInScale 0.4s ease-out forwards;
+  }
+
+  .animate-slide-in-top {
+    animation: slideInFromTop 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-slide-in-bottom {
+    animation: slideInFromBottom 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-slide-in-from-bottom {
+    animation: slideInFromBottom 0.3s ease-out forwards;
+  }
+
+  /* Job list animations */
+  .animate-collapse-out {
+    animation: collapseOut 0.3s ease-out forwards;
+  }
+
+  .animate-success-flash {
+    animation: successFlash 0.4s ease-out forwards;
+  }
+
+  .animate-stagger-in {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-tip-pulse {
+    animation: tipPulse 3s ease-in-out infinite;
+  }
+
+  /* Button press states */
+  .btn-press:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease-out;
+  }
+
+  /* Scroll snap for carousels */
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  /* Rubber band overscroll effect */
+  .overscroll-rubber {
+    overscroll-behavior-x: contain;
+  }
+
+  /* Staggered animation delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-150 {
+    animation-delay: 150ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-250 {
+    animation-delay: 250ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-350 {
+    animation-delay: 350ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animation-delay-450 {
+    animation-delay: 450ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Job list specific animations */
+@keyframes collapseOut {
+  0% {
+    opacity: 1;
+    max-height: 200px;
+    margin-bottom: 0.75rem;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes successFlash {
+  0% {
+    background-color: inherit;
+    box-shadow: none;
+  }
+  30% {
+    background-color: rgba(56, 142, 60, 0.15);
+    box-shadow: 0 0 0 2px rgba(56, 142, 60, 0.3);
+  }
+  100% {
+    background-color: inherit;
+    box-shadow: none;
+  }
+}
+
+@keyframes tipPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes spinnerRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
