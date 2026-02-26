@@ -54,10 +54,10 @@ export default function StaffPage() {
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <h1 className="text-xl font-semibold text-foreground">Staff Overview</h1>
+      <h1 className="text-xl font-semibold text-foreground animate-fade-in-up">Staff Overview</h1>
 
       {/* Summary Stats */}
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-4 text-sm animate-fade-in-up animation-delay-100">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-success" />
           <span className="text-muted-foreground">
@@ -103,12 +103,17 @@ export default function StaffPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredStaff.map((staffMember) => (
-            <StaffCard
+          {filteredStaff.map((staffMember, index) => (
+            <div
               key={staffMember.id}
-              staff={staffMember}
-              onClick={() => handleStaffClick(staffMember)}
-            />
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <StaffCard
+                staff={staffMember}
+                onClick={() => handleStaffClick(staffMember)}
+              />
+            </div>
           ))}
         </div>
       )}

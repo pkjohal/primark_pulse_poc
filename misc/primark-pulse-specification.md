@@ -125,6 +125,81 @@ The following best-in-class applications have been researched to inform Pulse.ai
 
 This section defines every field within each module, its purpose, data type, and how it fulfils the PoC Brief requirements.
 
+### `tailwind.config.js` (copy exactly)
+
+```js
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        primark: {
+          blue: '#0DAADB',
+          'blue-dark': '#0987A8',
+          'blue-light': '#E6F7FB',
+        },
+        navy: '#1A1F36',
+        charcoal: '#374151',
+        'mid-grey': '#6B7280',
+        'light-grey': '#F3F4F6',
+        'border-grey': '#E5E7EB',
+        success: { DEFAULT: '#10B981', bg: '#ECFDF5' },
+        warning: { DEFAULT: '#F59E0B', bg: '#FFFBEB' },
+        danger: { DEFAULT: '#EF4444', bg: '#FEF2F2' },
+        'alert-red': { DEFAULT: '#DC2626', dark: '#991B1B' },
+      },
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+### Design Tokens
+
+**Typography:**
+- Page title: `text-2xl font-bold` (24px, 700)
+- Section heading: `text-lg font-semibold` (18px, 600)
+- Card title: `text-base font-semibold` (16px, 600)
+- Body: `text-[15px] font-normal`
+- Caption/label: `text-[13px] font-medium uppercase tracking-wide`
+- Large stat number: `text-4xl font-bold` (36-48px, 700)
+- Table text: `text-sm font-normal` (14px, 400)
+
+**Spacing:**
+- Page padding: `p-6` (24px)
+- Card padding: `p-5` (20px)
+- Card border-radius: `rounded-xl` (12px)
+- Card shadow: `shadow-sm`
+- Gap between cards: `gap-4` (16px)
+- Button min-height: `min-h-[44px]` desktop, `min-h-[48px]` touch/mobile
+- Input min-height: `min-h-[44px]`
+- Button border-radius: `rounded-lg` (8px)
+- Sidebar width: `w-64` (260px), collapsible on mobile
+
+**NavBar:**
+- Height: 64px, `bg-navy`
+- Left: "PRIMARK" text (`uppercase tracking-[0.15em] font-bold text-primark-blue`), subtitle "Pulse" in `text-mid-grey`
+- Right: notification bell (with unread count badge), user name, role badge, store/location, logout button 
+
+## **3.0 Login screen (Login)**
+
+Full-screen gradient background: `bg-gradient-to-b from-navy to-primark-blue`.
+
+**Branding:** "PRIMARK" using `font-primark uppercase text-primark-blue` at 42px / weight 500. Subtitle "Qual.it — Quality Issue Management" in `text-white/70`.
+
+**Three-step wizard** (progressive disclosure — each step replaces the previous on the same card):
+
+- **Step 1 — Select Location:** Store dropdown populated dynamically. Stores are fetched by first querying active users to get distinct `store_id` values, then fetching only those stores ordered by name. Selecting a store advances to step 2 and fetches users for that store.
+- **Step 2 — Select Team Member:** User dropdown filtered to the selected store (`is_active = true`, ordered by name). Shows the selected store name as a subtitle. Includes a "← Back to Store Selection" button which resets to step 1.
+- **Step 3 — Enter PIN:** Displays the selected user's name as a subtitle. Renders the `PinPad` component. Correct PIN → navigate `/`. Incorrect → shake animation + "Incorrect PIN. Please try again." message (PIN does not auto-clear). Includes a "← Back to Team Selection" button which resets to step 2.
+
+**Loading state:** Full-screen spinner (`border-t-white rounded-full animate-spin`) shown while the initial store list loads.
+
+**Footer:** "Internal use only • Staff members only" in `text-white/50`.
+
 ## **3.1 Live Store Overview (Home)**
 
 **Brief Reference:** Section 1 — 'Single pane of glass for what's happening right now'
@@ -330,6 +405,10 @@ This matrix maps every PoC Brief requirement to its implementation status and lo
 # **5\. Android PWA Best Practices**
 
 The PoC Brief mandates: *'Progressive Web App (PWA) — Runs on any Android device — Mobile-first, in-store usable'*. This section details implementation requirements.
+
+**NavBar** - 64px, `bg-navy`. "PRIMARK" + "Qual.it". Right: notification bell + count badge, user name, role pill, store name, logout.
+
+**Sidebar** - 260px on desktop, hamburger on mobile. 
 
 ## **5.1 PWA Manifest Configuration**
 

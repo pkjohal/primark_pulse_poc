@@ -16,14 +16,14 @@ function getTimeBasedGreeting(): string {
 export function GreetingHeader() {
   const { user } = useAuthStore()
   const greeting = getTimeBasedGreeting()
-  const displayName = user?.name?.split(' ')[0] || 'there'
+  //const displayName = user?.name?.split(' ')[0] || 'there'
   const storeName = user?.store
 
   return (
     <div className="mb-4 animate-fade-in-scale">
       <p className="text-sm text-muted-foreground">{greeting},</p>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+        <h1 className="text-2xl font-bold text-foreground">Sarah</h1>
         {storeName && (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="w-3.5 h-3.5" />

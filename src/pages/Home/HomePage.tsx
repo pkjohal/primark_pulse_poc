@@ -35,7 +35,7 @@ export default function HomePage() {
   const dismissSuggestion = useDismissAISuggestion()
 
   return (
-    <div className="p-4 pb-32 space-y-4">
+    <div className="p-4 pb-24 space-y-4">
       {/* Greeting Header */}
       <GreetingHeader />
 

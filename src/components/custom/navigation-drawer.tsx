@@ -99,7 +99,7 @@ export function NavigationDrawer({ open, onOpenChange }: NavigationDrawerProps) 
         onSwipeClose={() => onOpenChange(false)}
       >
         {/* Header */}
-        <SheetHeader className="bg-primary text-white p-4 border-b-0">
+        <SheetHeader className="bg-navy text-white p-4 border-b-0">
           <SheetTitle className="text-white text-lg font-bold">All Modules</SheetTitle>
         </SheetHeader>
 

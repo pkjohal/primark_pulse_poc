@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 20%;
 
-    --primary: 195 100% 43%;         /* #00AFDB - Primark Cyan */
+    --primary: 194 89% 45%;          /* #0DAADB - Primark Blue */
     --primary-foreground: 0 0% 100%; /* white */
 
     --secondary: 210 40% 96%;        /* slate-100 */
@@ -31,7 +31,7 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 195 100% 43%;            /* Primark Cyan for focus ring */
+    --ring: 194 89% 45%;             /* Primark Blue for focus ring */
 
     --radius: 0.75rem;               /* 12px - Card border radius */
   }
@@ -80,7 +80,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     /* Prevent overscroll bounce on iOS */
     overscroll-behavior: none;
@@ -109,9 +109,16 @@
     background-color: inherit;
   }
 
-  /* AI gradient background - Primark Cyan */
+  /* Primark wordmark font */
+  .font-primark {
+    font-family: 'Work Sans', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+  }
+
+  /* AI gradient background - Primark Blue */
   .ai-gradient {
-    background: linear-gradient(135deg, #00AFDB, #4dcae8);
+    background: linear-gradient(135deg, #0DAADB, #4dcae8);
   }
 
   /* Bottom navigation */
@@ -380,4 +387,18 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+  90% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.55s ease-out forwards;
 }

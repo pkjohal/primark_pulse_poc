@@ -53,7 +53,7 @@ export default function StockPage() {
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <h1 className="text-xl font-semibold text-foreground">
           Stock & Availability
         </h1>
@@ -66,7 +66,7 @@ export default function StockPage() {
       </div>
 
       {/* Mode Toggle */}
-      <Card className="p-1 flex gap-1">
+      <Card className="p-1 flex gap-1 animate-fade-in-up animation-delay-100">
         <Button
           variant={scanMode === 'camera' ? 'default' : 'ghost'}
           className="flex-1"
@@ -86,23 +86,27 @@ export default function StockPage() {
       </Card>
 
       {/* Scanner / OmniSearch */}
-      {scanMode === 'camera' ? (
-        <BarcodeScanner onScan={handleBarcodeSubmit} />
-      ) : (
-        <OmniSearch
-          onBarcodeSubmit={handleBarcodeSubmit}
-          onProductSelect={handleProductSelect}
-          isLoading={isLoading}
-        />
-      )}
+      <div className="animate-fade-in-up animation-delay-200">
+        {scanMode === 'camera' ? (
+          <BarcodeScanner onScan={handleBarcodeSubmit} />
+        ) : (
+          <OmniSearch
+            onBarcodeSubmit={handleBarcodeSubmit}
+            onProductSelect={handleProductSelect}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
 
       {/* Product Display */}
-      <ProductCard
-        product={product ?? null}
-        isLoading={isLoading}
-        error={error as Error | null}
-        onReportIssue={product ? () => setIssueSheetOpen(true) : undefined}
-      />
+      <div className="animate-fade-in-up animation-delay-300">
+        <ProductCard
+          product={product ?? null}
+          isLoading={isLoading}
+          error={error as Error | null}
+          onReportIssue={product ? () => setIssueSheetOpen(true) : undefined}
+        />
+      </div>
 
       {/* Add to Basket Controls */}
       {product && !isLoading && !error && (
