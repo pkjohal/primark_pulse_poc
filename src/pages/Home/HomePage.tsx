@@ -172,13 +172,18 @@ export default function HomePage() {
               className="animate-fade-in-up animation-delay-250"
             />
             <MetricCard
-              title="Low Stock"
-              value="3 items"
+              title="Stock Level"
+              value={metrics.stockAlerts > 0 ? `${metrics.stockAlerts} item${metrics.stockAlerts !== 1 ? 's' : ''}` : 'All good'}
               icon={Package}
-              subtitle="Need replenishment"
-              status="amber"
-              tooltip="Products currently below minimum stock level and flagged for replenishment"
-              graphic={<MiniBars heights={[8, 4, 2]} className="text-warning" />}
+              subtitle={metrics.stockAlerts >= 3 ? 'Critical — restock now' : metrics.stockAlerts > 0 ? 'Some items low' : 'All levels ok'}
+              status={metrics.stockAlerts >= 3 ? 'red' : metrics.stockAlerts > 0 ? 'amber' : undefined}
+              tooltip="Products flagged below minimum stock level — blue = fine, amber = some low, red = critical"
+              graphic={
+                <MiniBars
+                  heights={metrics.stockAlerts >= 3 ? [8, 4, 2] : metrics.stockAlerts > 0 ? [8, 6, 4] : [8, 8, 8]}
+                  className={metrics.stockAlerts >= 3 ? 'text-critical' : metrics.stockAlerts > 0 ? 'text-warning' : 'text-primary'}
+                />
+              }
               onClick={() => navigate('/stock')}
               className="animate-fade-in-up animation-delay-300"
             />

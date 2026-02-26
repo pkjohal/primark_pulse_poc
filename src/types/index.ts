@@ -327,6 +327,7 @@ export interface StoreMetrics {
   openTasks: number;
   criticalTasks: number;
   complianceProgress: number;
+  stockAlerts: number;
 }
 
 // AI Suggestions

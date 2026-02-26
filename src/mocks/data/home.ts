@@ -9,6 +9,7 @@ export const mockStoreMetrics: StoreMetrics = {
   openTasks: 12,
   criticalTasks: 2,
   complianceProgress: 85,
+  stockAlerts: 3,
 };
 
 export const mockAlerts: Alert[] = [

@@ -382,10 +382,19 @@ INSERT INTO users (id, store_id, name, role, pin, is_active) VALUES
   ('user-3', 'store-1', 'Sarah Mitchell', 'manager',    '1234', true),
   ('user-4', 'store-2', 'Chris Patel',    'staff',      '1234', true),
   ('user-5', 'store-2', 'Emma Davies',    'floor-lead', '1234', true),
-  ('user-6', 'store-3', 'Marcus Johnson', 'staff',      '1234', true),
-  ('user-7', 'store-3', 'Priya Shah',     'manager',    '1234', true),
-  ('user-8', 'store-4', 'Tom Williams',   'floor-lead', '1234', true),
-  ('user-9', 'store-4', 'Lisa Brown',     'staff',      '1234', true)
+  ('user-6',  'store-3', 'Marcus Johnson', 'staff',      '1234', true),
+  ('user-7',  'store-3', 'Priya Shah',     'manager',    '1234', true),
+  ('user-8',  'store-4', 'Tom Williams',   'floor-lead', '1234', true),
+  ('user-9',  'store-4', 'Lisa Brown',     'staff',      '1234', true),
+  -- Birmingham shop-floor staff (linked to staff-3 through staff-10)
+  ('user-11', 'store-1', 'Priya Shah',     'staff',      '1234', true),
+  ('user-12', 'store-1', 'Tom Clarke',     'staff',      '1234', true),
+  ('user-13', 'store-1', 'Lena Walker',    'staff',      '1234', true),
+  ('user-14', 'store-1', 'Marcus Green',   'staff',      '1234', true),
+  ('user-15', 'store-1', 'Sophie Turner',  'staff',      '1234', true),
+  ('user-16', 'store-1', 'Ryan Patel',     'staff',      '1234', true),
+  ('user-17', 'store-1', 'Olivia Brown',   'staff',      '1234', true),
+  ('user-18', 'store-1', 'Jack Wilson',    'staff',      '1234', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Zones (for store-1)
@@ -404,14 +413,14 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO staff_members (id, user_id, store_id, zone_id, status, skills, shift_start, shift_end) VALUES
   ('staff-1', 'user-1', 'store-1', 'zone-main-tills',    'active', ARRAY['Till Trained','Supervisor','First Aid'],          '09:00', '17:30'),
   ('staff-2', 'user-2', 'store-1', 'zone-stockroom',     'active', ARRAY['Stock Management','Forklift'],                    '06:00', '14:30'),
-  ('staff-3', NULL,     'store-1', 'zone-womenswear',    'active', ARRAY['Visual Merchandising','Till Trained'],             '10:00', '18:30'),
-  ('staff-4', NULL,     'store-1', 'zone-menswear',      'break',  ARRAY['Till Trained','Customer Service'],                 '08:00', '16:30'),
-  ('staff-5', NULL,     'store-1', 'zone-fitting-rooms', 'active', ARRAY['Fitting Room','Security Aware'],                   '11:00', '19:30'),
-  ('staff-6', NULL,     'store-1', 'zone-main-tills',    'active', ARRAY['Till Trained','Cash Office'],                     '09:00', '17:30'),
-  ('staff-7', NULL,     'store-1', 'zone-childrenswear', 'active', ARRAY['Till Trained','Visual Merchandising'],             '10:00', '18:30'),
-  ('staff-8', NULL,     'store-1', 'zone-stockroom',     'active', ARRAY['Stock Management','Delivery'],                    '05:00', '13:30'),
-  ('staff-9', NULL,     'store-1', 'zone-entrance',      'active', ARRAY['Security Aware','Customer Service'],              '09:00', '17:30'),
-  ('staff-10',NULL,     'store-1', 'zone-home',          'absent', ARRAY['Till Trained','Heavy Lifting'],                   '08:00', '16:30')
+  ('staff-3', 'user-11','store-1', 'zone-womenswear',    'active', ARRAY['Visual Merchandising','Till Trained'],             '10:00', '18:30'),
+  ('staff-4', 'user-12','store-1', 'zone-menswear',      'break',  ARRAY['Till Trained','Customer Service'],                 '08:00', '16:30'),
+  ('staff-5', 'user-13','store-1', 'zone-fitting-rooms', 'active', ARRAY['Fitting Room','Security Aware'],                   '11:00', '19:30'),
+  ('staff-6', 'user-14','store-1', 'zone-main-tills',    'active', ARRAY['Till Trained','Cash Office'],                     '09:00', '17:30'),
+  ('staff-7', 'user-15','store-1', 'zone-childrenswear', 'active', ARRAY['Till Trained','Visual Merchandising'],             '10:00', '18:30'),
+  ('staff-8', 'user-16','store-1', 'zone-stockroom',     'active', ARRAY['Stock Management','Delivery'],                    '05:00', '13:30'),
+  ('staff-9', 'user-17','store-1', 'zone-entrance',      'active', ARRAY['Security Aware','Customer Service'],              '09:00', '17:30'),
+  ('staff-10','user-18','store-1', 'zone-home',          'absent', ARRAY['Till Trained','Heavy Lifting'],                   '08:00', '16:30')
 ON CONFLICT (id) DO NOTHING;
 
 -- Jobs (store-1)
