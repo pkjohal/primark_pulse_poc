@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { Users, Briefcase, Package, ClipboardCheck, X } from 'lucide-react'
+import { Users, Briefcase, Package, ClipboardCheck, X, Clock, Calendar } from 'lucide-react'
 import { useStoreMetrics } from '@/hooks/useStoreMetrics'
 import { useAISuggestion, useDismissAISuggestion } from '@/hooks/useAISuggestion'
+import { useCurrentShift, useNextShift } from '@/hooks/useCurrentShift'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/skeleton'
@@ -43,6 +44,61 @@ function MiniBars({ heights, className }: { heights: number[]; className?: strin
         )
       })}
     </svg>
+  )
+}
+
+// ── Staff shift banner ────────────────────────────────────────────────────────
+
+function StaffShiftBanner() {
+  const { data: current, isLoading: currentLoading } = useCurrentShift()
+  const { data: next, isLoading: nextLoading } = useNextShift()
+
+  if (currentLoading || nextLoading) return null
+
+  const isWorkingToday = current?.shiftStart && current.shiftStart !== '--:--'
+
+  if (isWorkingToday && current) {
+    return (
+      <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-3 animate-slide-in-top">
+        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+          <Clock className="w-4 h-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-primary">Today's Shift</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {current.shiftStart}–{current.shiftEnd} · {current.zone}
+            {current.breakTime && current.breakTime !== '--:--' && ` · Break at ${current.breakTime}`}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (next) {
+    const date = new Date(next.date)
+    const formatted = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    return (
+      <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-3 animate-slide-in-top">
+        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+          <Calendar className="w-4 h-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-primary">Next Shift</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {formatted} · {next.shiftStart}–{next.shiftEnd} · {next.zone}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-3 animate-slide-in-top">
+      <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+        <Calendar className="w-4 h-4 text-primary" />
+      </div>
+      <p className="text-sm font-bold text-primary">No upcoming shifts scheduled</p>
+    </div>
   )
 }
 
@@ -97,32 +153,36 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── AI Suggestion — compact inline banner ── */}
-      {!suggestionLoading && aiSuggestion && (
-        <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5 animate-slide-in-top">
-          <div className="flex-1 min-w-0">
-            <p className="text-s text-navy/80 font-bold mb-0.5">AI Suggestion</p>
-            <p className="text-xs font-semibold text-primary truncate">{aiSuggestion.suggestionText}</p>
-            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{aiSuggestion.explanation}</p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs h-7 px-2.5 border-primary/30 text-primary shrink-0"
-            onClick={() => aiSuggestion.actionPath && navigate(aiSuggestion.actionPath)}
-          >
-            {aiSuggestion.primaryAction}
-          </Button>
-          {aiSuggestion.dismissible && (
-            <button
-              onClick={() => dismissSuggestion.mutate(aiSuggestion.id)}
-              className="text-muted-foreground hover:text-foreground shrink-0"
-              aria-label="Dismiss"
+      {/* ── Suggestion / shift banner ── */}
+      {user?.role === 'staff' ? (
+        <StaffShiftBanner />
+      ) : (
+        !suggestionLoading && aiSuggestion && (
+          <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2.5 animate-slide-in-top">
+            <div className="flex-1 min-w-0">
+              <p className="text-s text-navy/80 font-bold mb-0.5">AI Suggestion</p>
+              <p className="text-xs font-semibold text-primary truncate">{aiSuggestion.suggestionText}</p>
+              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{aiSuggestion.explanation}</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-7 px-2.5 border-primary/30 text-primary shrink-0"
+              onClick={() => aiSuggestion.actionPath && navigate(aiSuggestion.actionPath)}
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+              {aiSuggestion.primaryAction}
+            </Button>
+            {aiSuggestion.dismissible && (
+              <button
+                onClick={() => dismissSuggestion.mutate(aiSuggestion.id)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )
       )}
 
       {/* ── Metrics row ── */}

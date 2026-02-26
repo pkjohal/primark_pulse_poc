@@ -12,6 +12,45 @@ export interface CurrentShift {
   status: 'active' | 'break' | 'absent'
 }
 
+export interface NextShift {
+  date: string
+  shiftStart: string
+  shiftEnd: string
+  breakTime: string | null
+  zone: string
+}
+
+export function useNextShift() {
+  const user = useAuthStore(s => s.user)
+  const today = new Date().toISOString().split('T')[0]
+
+  return useQuery({
+    queryKey: ['nextShift', user?.id],
+    queryFn: async (): Promise<NextShift | null> => {
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*, zones(name)')
+        .eq('user_id', user!.id)
+        .gt('date', today)
+        .eq('status', 'confirmed')
+        .order('date', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      if (!data) return null
+      return {
+        date: data.date,
+        shiftStart: data.start_time ?? '--:--',
+        shiftEnd: data.end_time ?? '--:--',
+        breakTime: data.break_start ?? null,
+        zone: (data.zones as { name: string } | null)?.name ?? 'Unassigned',
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useCurrentShift() {
   const user = useAuthStore(s => s.user)
 

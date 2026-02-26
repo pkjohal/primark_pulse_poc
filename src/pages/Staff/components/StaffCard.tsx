@@ -41,19 +41,11 @@ export function StaffCard({ staff, onClick, className }: StaffCardProps) {
             <h3 className="text-sm font-medium text-foreground truncate">
               {staff.name}
             </h3>
-            {/* Status Dot */}
             <span
-              className={cn(
-                'w-2 h-2 rounded-full shrink-0',
-                status.color
-              )}
+              className={cn('w-2 h-2 rounded-full shrink-0', status.color)}
               title={status.label}
             />
           </div>
-
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {staff.zone}
-          </p>
 
           <p className="text-xs text-muted-foreground">
             {staff.shiftStart} - {staff.shiftEnd}
@@ -73,6 +65,15 @@ export function StaffCard({ staff, onClick, className }: StaffCardProps) {
             )}
           </div>
         </div>
+
+        {/* Zone bubble — only shown when staff is assigned and not absent */}
+        {staff.status !== 'absent' && staff.zone && staff.zone !== 'Unassigned' && (
+          <div className="shrink-0 self-start mt-0.5">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              {staff.zone}
+            </span>
+          </div>
+        )}
       </div>
     </Card>
   )
