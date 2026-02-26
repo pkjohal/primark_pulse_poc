@@ -23,7 +23,7 @@ export function GreetingHeader() {
     <div className="mb-4 animate-fade-in-scale">
       <p className="text-sm text-muted-foreground">{greeting},</p>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Sarah</h1>
+        <h1 className="text-2xl font-bold text-foreground">{user?.name}</h1>
         {storeName && (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="w-3.5 h-3.5" />

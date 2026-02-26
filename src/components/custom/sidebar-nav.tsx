@@ -8,12 +8,10 @@ import {
   Shield,
   BarChart3,
   Calendar,
-  LogOut,
   MessageSquare,
   ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/authStore'
 import type { LucideIcon } from 'lucide-react'
 
 interface MenuItem {
@@ -37,16 +35,10 @@ const navItems: MenuItem[] = [
 export function SidebarNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuthStore()
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/'
     return location.pathname.startsWith(path)
-  }
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
   }
 
   return (
@@ -87,19 +79,6 @@ export function SidebarNav() {
           )
         })}
       </nav>
-
-      {/* Logout */}
-      <div className="p-3 border-t border-border-grey">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left hover:bg-red-50 transition-colors"
-        >
-          <div className="p-1.5 rounded-md bg-red-100 text-red-600 shrink-0">
-            <LogOut className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-medium text-red-600">Log Out</span>
-        </button>
-      </div>
     </aside>
   )
 }

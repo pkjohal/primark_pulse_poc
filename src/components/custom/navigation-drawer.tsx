@@ -17,7 +17,6 @@ import {
   Heart,
   ChevronRight,
   Calendar,
-  LogOut,
   MessageSquare,
 } from 'lucide-react'
 import {
@@ -27,7 +26,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/authStore'
 import type { LucideIcon } from 'lucide-react'
 
 interface MenuItem {
@@ -69,19 +67,12 @@ interface NavigationDrawerProps {
 export function NavigationDrawer({ open, onOpenChange }: NavigationDrawerProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuthStore()
 
   const handleNavigation = (item: MenuItem) => {
     if (item.status === 'active' && item.path) {
       navigate(item.path)
       onOpenChange(false)
     }
-  }
-
-  const handleLogout = () => {
-    logout()
-    onOpenChange(false)
-    navigate('/login')
   }
 
   const isCurrentPath = (path?: string) => {
@@ -182,18 +173,6 @@ export function NavigationDrawer({ open, onOpenChange }: NavigationDrawerProps) 
             })}
           </div>
 
-          {/* Logout Button */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-3 rounded-xl text-left hover:bg-red-50 transition-colors"
-            >
-              <div className="p-2 rounded-lg bg-red-100 text-red-600">
-                <LogOut className="w-5 h-5" />
-              </div>
-              <p className="font-medium text-red-600">Log Out</p>
-            </button>
-          </div>
         </div>
       </SheetContent>
     </Sheet>

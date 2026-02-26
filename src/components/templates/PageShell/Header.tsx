@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Bell, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/stores/uiStore'
@@ -17,7 +18,13 @@ const ROLE_LABELS: Record<string, string> = {
 export function Header({ className }: HeaderProps) {
   const { notificationCount } = useUIStore()
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
   
 
   return (
@@ -65,7 +72,7 @@ export function Header({ className }: HeaderProps) {
               {user.role}
             </span>
             <button
-              onClick={() => {}}
+              onClick={handleLogout}
               className="p-2 text-mid-grey hover:text-white transition-colors"
               aria-label="Logout"
             >
