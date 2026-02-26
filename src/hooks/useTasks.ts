@@ -1,11 +1,69 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { Task, TaskStatus, TaskPriority } from '@/types'
 
 export type TaskFilter = 'all' | 'my-tasks' | 'unassigned'
 
-// ============================================
-// Create Task
-// ============================================
+const TASK_SELECT = '*, zones(name), staff_members(id, users(name))'
+
+function rowToTask(row: Record<string, unknown>): Task {
+  const zone = row.zones as { name: string } | null
+  const assignee = row.staff_members as { id: string; users?: { name: string } | null } | null
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    priority: row.priority as TaskPriority,
+    status: row.status as TaskStatus,
+    zone: zone?.name ?? '',
+    assignee: assignee?.id ?? null,
+    assigneeName: assignee?.users?.name ?? undefined,
+    sla: row.sla_minutes as number,
+    aiSuggested: row.ai_suggested as boolean,
+    createdAt: row.created_at as string,
+    completedAt: row.completed_at as string | undefined,
+    completedIn: row.completed_in as number | undefined,
+  }
+}
+
+// ── Fetch Tasks ────────────────────────────────────────────────────────────
+
+export function useTasks(filter?: TaskFilter) {
+  const storeId = useAuthStore(s => s.user?.store_id)
+  const userId = useAuthStore(s => s.user?.id)
+
+  return useQuery({
+    queryKey: ['tasks', storeId, filter],
+    queryFn: async (): Promise<Task[]> => {
+      let query = supabase
+        .from('tasks')
+        .select(TASK_SELECT)
+        .eq('store_id', storeId!)
+        .order('created_at', { ascending: false })
+
+      if (filter === 'unassigned') {
+        query = query.is('assignee_id', null)
+      } else if (filter === 'my-tasks' && userId) {
+        // Find staff_member id for current user
+        const { data: sm } = await supabase
+          .from('staff_members')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (sm) query = query.eq('assignee_id', sm.id)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return (data ?? []).map(row => rowToTask(row as Record<string, unknown>))
+    },
+    enabled: !!storeId,
+    refetchInterval: 30000,
+  })
+}
+
+// ── Create Task ────────────────────────────────────────────────────────────
+
 export interface CreateTaskParams {
   title: string
   priority: TaskPriority
@@ -16,61 +74,44 @@ export interface CreateTaskParams {
   assigneeName?: string
 }
 
-async function createTask(params: CreateTaskParams): Promise<Task> {
-  const res = await fetch('/api/tasks', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      status: params.assignee ? 'pending' : 'unassigned',
-      aiSuggested: false,
-      createdAt: new Date().toISOString(),
-    }),
-  })
-  if (!res.ok) {
-    throw new Error('Failed to create task')
-  }
-  return res.json()
-}
-
 export function useCreateTask() {
   const queryClient = useQueryClient()
+  const storeId = useAuthStore(s => s.user?.store_id)
 
   return useMutation({
-    mutationFn: createTask,
-    onSuccess: (newTask) => {
-      // Add the new task to the cache optimistically
-      queryClient.setQueriesData<Task[]>(
-        { queryKey: ['tasks'] },
-        (old) => {
-          if (!old) return [newTask]
-          return [newTask, ...old]
-        }
-      )
-      // Then invalidate to ensure sync
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    mutationFn: async (params: CreateTaskParams): Promise<Task> => {
+      const { data: zone } = await supabase
+        .from('zones')
+        .select('id')
+        .eq('store_id', storeId!)
+        .eq('name', params.zone)
+        .maybeSingle()
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          store_id: storeId!,
+          title: params.title,
+          description: params.description,
+          priority: params.priority,
+          status: params.assignee ? 'pending' : 'unassigned',
+          zone_id: zone?.id ?? null,
+          assignee_id: params.assignee ?? null,
+          sla_minutes: params.sla,
+          ai_suggested: false,
+        })
+        .select(TASK_SELECT)
+        .single()
+      if (error) throw error
+      return rowToTask(data as Record<string, unknown>)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', storeId] })
     },
   })
 }
 
-async function fetchTasks(filter?: TaskFilter): Promise<Task[]> {
-  const url = filter && filter !== 'all'
-    ? `/api/tasks?filter=${filter}`
-    : '/api/tasks'
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error('Failed to fetch tasks')
-  }
-  return res.json()
-}
-
-export function useTasks(filter?: TaskFilter) {
-  return useQuery({
-    queryKey: ['tasks', filter],
-    queryFn: () => fetchTasks(filter),
-    refetchInterval: 30000, // Refresh every 30 seconds
-  })
-}
+// ── Update Task ────────────────────────────────────────────────────────────
 
 interface UpdateTaskParams {
   id: string
@@ -79,73 +120,54 @@ interface UpdateTaskParams {
   assigneeName?: string
 }
 
-async function updateTask(params: UpdateTaskParams): Promise<Task> {
-  const { id, ...updates } = params
-  const res = await fetch(`/api/tasks/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
-  })
-  if (!res.ok) {
-    throw new Error('Failed to update task')
-  }
-  return res.json()
-}
-
 export function useUpdateTask() {
   const queryClient = useQueryClient()
+  const storeId = useAuthStore(s => s.user?.store_id)
 
   return useMutation({
-    mutationFn: updateTask,
+    mutationFn: async ({ id, assigneeName: _name, ...updates }: UpdateTaskParams): Promise<Task> => {
+      const patch: Record<string, unknown> = {}
+      if (updates.status !== undefined)   patch.status      = updates.status
+      if (updates.assignee !== undefined) patch.assignee_id = updates.assignee
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(patch)
+        .eq('id', id)
+        .select(TASK_SELECT)
+        .single()
+      if (error) throw error
+      return rowToTask(data as Record<string, unknown>)
+    },
     onMutate: async (updatedTask) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['tasks'] })
-
-      // Snapshot the previous value
-      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
-
-      // Optimistically update to the new value
+      await queryClient.cancelQueries({ queryKey: ['tasks', storeId] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', storeId])
       queryClient.setQueriesData<Task[]>(
-        { queryKey: ['tasks'] },
-        (old) => {
-          if (!old) return old
-          return old.map((task) =>
-            task.id === updatedTask.id
-              ? { ...task, ...updatedTask }
-              : task
-          )
-        }
+        { queryKey: ['tasks', storeId] },
+        (old) => old?.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
       )
-
       return { previousTasks }
     },
-    onError: (_err, _variables, context) => {
-      // Rollback on error
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks'], context.previousTasks)
-      }
+    onError: (_err, _vars, context) => {
+      if (context?.previousTasks) queryClient.setQueryData(['tasks', storeId], context.previousTasks)
     },
     onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', storeId] })
     },
   })
 }
 
-// Helper to calculate remaining SLA time in minutes
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 export function calculateRemainingTime(task: Task): number {
-  const createdAt = new Date(task.createdAt)
-  const deadline = new Date(createdAt.getTime() + task.sla * 60 * 1000)
-  const now = new Date()
-  const remainingMs = deadline.getTime() - now.getTime()
-  return Math.floor(remainingMs / (60 * 1000))
+  const deadline = new Date(new Date(task.createdAt).getTime() + task.sla * 60 * 1000)
+  return Math.floor((deadline.getTime() - Date.now()) / 60000)
 }
 
-// Helper to determine SLA urgency level
 export function getSLAUrgency(remainingMinutes: number, totalMinutes: number): 'normal' | 'warning' | 'critical' {
   if (remainingMinutes <= 0) return 'critical'
-  const percentRemaining = (remainingMinutes / totalMinutes) * 100
-  if (percentRemaining <= 10) return 'critical'
-  if (percentRemaining <= 25) return 'warning'
+  const pct = (remainingMinutes / totalMinutes) * 100
+  if (pct <= 10) return 'critical'
+  if (pct <= 25) return 'warning'
   return 'normal'
 }

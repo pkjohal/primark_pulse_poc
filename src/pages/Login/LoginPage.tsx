@@ -3,30 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { Delete } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import type { UserRole } from '@/stores/authStore'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
-// ── Mock data ────────────────────────────────────────────────────────────────
+interface Store {
+  id: string
+  name: string
+}
 
-const MOCK_STORES = [
-  { id: 'store-1', name: 'Birmingham Bull Ring' },
-  { id: 'store-2', name: 'London Oxford Street' },
-  { id: 'store-3', name: 'Manchester Arndale' },
-  { id: 'store-4', name: 'Leeds White Rose' },
-]
-
-const MOCK_STAFF = [
-  { id: 'staff-1', name: 'Alex Thompson',  storeId: 'store-1', role: 'floor-lead' as UserRole },
-  { id: 'staff-2', name: 'Jamie Collins',  storeId: 'store-1', role: 'staff'      as UserRole },
-  { id: 'staff-3', name: 'Sarah Mitchell', storeId: 'store-1', role: 'manager'    as UserRole },
-  { id: 'staff-4', name: 'Chris Patel',    storeId: 'store-2', role: 'staff'      as UserRole },
-  { id: 'staff-5', name: 'Emma Davies',    storeId: 'store-2', role: 'floor-lead' as UserRole },
-  { id: 'staff-6', name: 'Marcus Johnson', storeId: 'store-3', role: 'staff'      as UserRole },
-  { id: 'staff-7', name: 'Priya Shah',     storeId: 'store-3', role: 'manager'    as UserRole },
-  { id: 'staff-8', name: 'Tom Williams',   storeId: 'store-4', role: 'floor-lead' as UserRole },
-  { id: 'staff-9', name: 'Lisa Brown',     storeId: 'store-4', role: 'staff'      as UserRole },
-]
-
-const CORRECT_PIN = '1234'
+interface StaffUser {
+  id: string
+  name: string
+  role: UserRole
+}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -35,32 +24,49 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore()
 
   const [loading, setLoading] = useState(true)
-  const [selectedStore, setSelectedStore] = useState<(typeof MOCK_STORES)[0] | null>(null)
-  const [selectedStaff, setSelectedStaff] = useState<(typeof MOCK_STAFF)[0] | null>(null)
+  const [stores, setStores] = useState<Store[]>([])
+  const [storeStaff, setStoreStaff] = useState<StaffUser[]>([])
+  const [staffLoading, setStaffLoading] = useState(false)
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null)
+  const [selectedStaff, setSelectedStaff] = useState<StaffUser | null>(null)
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
 
+  // Load stores on mount
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 700)
-    return () => clearTimeout(t)
+    supabase
+      .from('locations')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
+      .then(({ data }) => {
+        if (data) setStores(data)
+        setLoading(false)
+      })
   }, [])
-
-  const storeStaff = selectedStore
-    ? MOCK_STAFF.filter(s => s.storeId === selectedStore.id)
-    : []
 
   const step = !selectedStore ? 'store' : !selectedStaff ? 'user' : 'pin'
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleStoreSelect = (storeId: string) => {
-    const store = MOCK_STORES.find(s => s.id === storeId)
+  const handleStoreSelect = async (storeId: string) => {
+    const store = stores.find(s => s.id === storeId)
     if (!store) return
     setSelectedStore(store)
     setSelectedStaff(null)
     setPin('')
     setError('')
+
+    setStaffLoading(true)
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, role')
+      .eq('store_id', storeId)
+      .eq('is_active', true)
+      .order('name')
+    setStoreStaff(data ?? [])
+    setStaffLoading(false)
   }
 
   const handleUserSelect = (userId: string) => {
@@ -71,23 +77,39 @@ export default function LoginPage() {
     setError('')
   }
 
-  const handlePinDigit = (digit: string) => {
+  const handlePinDigit = async (digit: string) => {
     if (pin.length >= 4) return
     const next = pin + digit
     setPin(next)
     setError('')
 
     if (next.length === 4) {
-      if (next === CORRECT_PIN) {
+      const { data } = await supabase
+        .from('users')
+        .select('pin')
+        .eq('id', selectedStaff!.id)
+        .single()
+
+      if (data?.pin === next) {
         setAuth(
-          { email: '', name: selectedStaff!.name, store: selectedStore!.name, role: selectedStaff!.role },
-          'mock-jwt-token-' + Date.now()
+          {
+            id: selectedStaff!.id,
+            email: '',
+            name: selectedStaff!.name,
+            store: selectedStore!.name,
+            store_id: selectedStore!.id,
+            role: selectedStaff!.role,
+          },
+          'supabase-session-' + Date.now()
         )
         navigate('/', { replace: true })
       } else {
         setError('Incorrect PIN. Please try again.')
         setShake(true)
-        setTimeout(() => setShake(false), 600)
+        setTimeout(() => {
+          setShake(false)
+          setPin('')
+        }, 600)
       }
     }
   }
@@ -104,6 +126,7 @@ export default function LoginPage() {
       setError('')
     } else if (selectedStore) {
       setSelectedStore(null)
+      setStoreStaff([])
       setError('')
     }
   }
@@ -148,7 +171,7 @@ export default function LoginPage() {
                 className="w-full border-2 border-border-grey rounded-xl px-4 py-3 text-[15px] text-charcoal focus:outline-none focus:border-primark-blue focus:ring-2 focus:ring-primark-blue/20"
               >
                 <option value="" disabled>Select a location…</option>
-                {MOCK_STORES.map(s => (
+                {stores.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
@@ -162,16 +185,22 @@ export default function LoginPage() {
                 <h2 className="text-xl font-bold text-navy">Select Team Member</h2>
                 <p className="text-sm text-mid-grey mt-1">{selectedStore!.name}</p>
               </div>
-              <select
-                defaultValue=""
-                onChange={e => e.target.value && handleUserSelect(e.target.value)}
-                className="w-full border-2 border-border-grey rounded-xl px-4 py-3 text-[15px] text-charcoal focus:outline-none focus:border-primark-blue focus:ring-2 focus:ring-primark-blue/20 mb-4"
-              >
-                <option value="" disabled>Select your name…</option>
-                {storeStaff.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
+              {staffLoading ? (
+                <div className="flex justify-center py-6">
+                  <div className="w-8 h-8 border-2 border-primark-blue/30 border-t-primark-blue rounded-full animate-spin" />
+                </div>
+              ) : (
+                <select
+                  defaultValue=""
+                  onChange={e => e.target.value && handleUserSelect(e.target.value)}
+                  className="w-full border-2 border-border-grey rounded-xl px-4 py-3 text-[15px] text-charcoal focus:outline-none focus:border-primark-blue focus:ring-2 focus:ring-primark-blue/20 mb-4"
+                >
+                  <option value="" disabled>Select your name…</option>
+                  {storeStaff.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              )}
               <button
                 onClick={handleBack}
                 className="w-full py-2.5 text-sm text-primark-blue hover:bg-primark-blue-light rounded-lg transition-colors"

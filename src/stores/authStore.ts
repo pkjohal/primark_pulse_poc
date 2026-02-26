@@ -4,9 +4,11 @@ import { persist } from 'zustand/middleware'
 export type UserRole = 'staff' | 'floor-lead' | 'manager'
 
 export interface User {
+  id: string
   email: string
   name: string
   store: string
+  store_id: string
   role: UserRole
 }
 
@@ -39,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'primark-pulse-auth',
+      version: 1, // bumped to clear sessions that predate store_id field
     }
   )
 )

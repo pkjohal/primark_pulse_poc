@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 
 export interface CurrentShift {
   id: string
@@ -10,19 +12,43 @@ export interface CurrentShift {
   status: 'active' | 'break' | 'absent'
 }
 
-async function fetchCurrentShift(): Promise<CurrentShift> {
-  const response = await fetch('/api/staff/me')
-  if (!response.ok) {
-    throw new Error('Failed to fetch current shift')
-  }
-  return response.json()
-}
-
 export function useCurrentShift() {
+  const user = useAuthStore(s => s.user)
+
   return useQuery({
-    queryKey: ['currentShift'],
-    queryFn: fetchCurrentShift,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    queryKey: ['currentShift', user?.id],
+    queryFn: async (): Promise<CurrentShift> => {
+      const today = new Date().toISOString().split('T')[0]
+
+      // Get the user's shift for today
+      const { data: shift, error: shiftError } = await supabase
+        .from('shifts')
+        .select('*, zones(name)')
+        .eq('user_id', user!.id)
+        .eq('date', today)
+        .maybeSingle()
+      if (shiftError) throw shiftError
+
+      // Get staff_member record for status
+      const { data: staffMember, error: staffError } = await supabase
+        .from('staff_members')
+        .select('id, status')
+        .eq('user_id', user!.id)
+        .maybeSingle()
+      if (staffError) throw staffError
+
+      return {
+        id: staffMember?.id ?? user!.id,
+        name: user!.name,
+        zone: (shift?.zones as { name: string } | null)?.name ?? 'Unassigned',
+        shiftStart: shift?.start_time ?? '--:--',
+        shiftEnd: shift?.end_time ?? '--:--',
+        breakTime: shift?.break_start ?? '--:--',
+        status: (staffMember?.status as CurrentShift['status']) ?? 'active',
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   })
 }

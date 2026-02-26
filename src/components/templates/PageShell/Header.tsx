@@ -11,10 +11,6 @@ interface HeaderProps {
   className?: string
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  floor_lead: 'Floor Lead',
-};
-
 export function Header({ className }: HeaderProps) {
   const { notificationCount } = useUIStore()
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
