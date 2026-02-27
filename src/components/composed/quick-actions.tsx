@@ -23,7 +23,7 @@ export function QuickActions() {
   const { data: shift } = useCurrentShift()
 
   const handleAction = (key: string) => {
-    if (key === 'scan')     navigate('/stock', { state: { openScanner: true } })
+    if (key === 'scan')     navigate('/scan-stock')
     if (key === 'lookup')   navigate('/stock')
     if (key === 'schedule') navigate('/schedule')
     // Log Issue: placeholder — no navigation yet

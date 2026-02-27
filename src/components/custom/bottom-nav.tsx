@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, MessageSquare, Briefcase, Package, ClipboardCheck } from 'lucide-react'
+import { Home, MessageSquare, Briefcase, Package, ScanLine, ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { NavItem } from '@/types'
 
@@ -15,6 +15,7 @@ const navItems: NavItemConfig[] = [
   { id: 'team', label: 'Teams', icon: MessageSquare, path: '/team' },
   { id: 'jobs', label: 'Jobs', icon: Briefcase, path: '/jobs' },
   { id: 'stock', label: 'Stock', icon: Package, path: '/stock' },
+  { id: 'scan-stock', label: 'Scan Stock', icon: ScanLine, path: '/scan-stock' },
   { id: 'compliance', label: 'Compliance', icon: ClipboardCheck, path: '/compliance' },
 ]
 

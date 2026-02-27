@@ -5,6 +5,7 @@ import {
   ClipboardList,
   TrendingUp,
   Package,
+  ScanLine,
   Shield,
   BarChart3,
   Calendar,
@@ -48,16 +49,17 @@ const navGroups: MenuGroup[] = [
     ],
   },
   {
-    label: 'Stock & Compliance',
+    label: 'Stock',
     items: [
-      { icon: Package, label: 'Stock & Availability', path: '/stock'      },
-      { icon: Shield,  label: 'Compliance',           path: '/compliance' },
+      { icon: ScanLine, label: 'Scan Stock',           path: '/scan-stock' },
+      { icon: Package,  label: 'Stock & Availability', path: '/stock'      },
     ],
   },
   {
-    label: 'Analytics',
+    label: 'Compliance & Reporting',
     items: [
-      { icon: BarChart3, label: 'Performance Insights', path: '/insights' },
+      { icon: Shield,    label: 'Compliance',           path: '/compliance' },
+      { icon: BarChart3, label: 'Performance Insights', path: '/insights'   },
     ],
   },
 ]

@@ -445,7 +445,7 @@ export interface Notification {
 }
 
 // Navigation & UI State
-export type NavItem = 'home' | 'staff' | 'jobs' | 'stock' | 'compliance' | 'team';
+export type NavItem = 'home' | 'staff' | 'jobs' | 'stock' | 'scan-stock' | 'compliance' | 'team';
 
 export interface UIState {
   activeNav: NavItem;
