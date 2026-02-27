@@ -65,7 +65,7 @@ export type EscalationReason = 'cant-complete' | 'need-help' | 'equipment-issue'
 
 export type JobPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type JobStatus = 'unassigned' | 'pending' | 'in-progress' | 'complete' | 'escalated';
-export type JobFilter = 'all' | 'my-jobs' | 'unassigned';
+export type JobFilter = 'all' | 'my-jobs' | 'unassigned' | 'done' | 'my-done';
 
 // Task Management
 export interface Task {

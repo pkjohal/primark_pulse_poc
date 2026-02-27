@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Search, Plus, X } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
 import {
   Sheet,
   SheetContent,
@@ -11,8 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { supabase } from '@/lib/supabase'
 import { useCreateJob, type CreateJobParams } from '@/hooks/useJobs'
 import { useStaff } from '@/hooks/useStaff'
+import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/components/ui/toast'
 import type { JobPriority, StaffMember } from '@/types'
 
@@ -22,7 +25,7 @@ interface CreateJobSheetProps {
   onCreated?: () => void
 }
 
-const STORE_ZONES = [
+const FALLBACK_ZONES = [
   'Menswear',
   'Womenswear',
   'Kidswear',
@@ -32,6 +35,25 @@ const STORE_ZONES = [
   'Entrance',
   'Home & Beauty',
 ]
+
+function useZoneNames() {
+  const storeId = useAuthStore(s => s.user?.store_id)
+  return useQuery({
+    queryKey: ['zones', storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('zones')
+        .select('name')
+        .eq('store_id', storeId!)
+        .order('name')
+      if (error) throw error
+      return (data ?? []).map(z => z.name as string)
+    },
+    enabled: !!storeId,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: FALLBACK_ZONES,
+  })
+}
 
 const SLA_OPTIONS = [
   { value: 15, label: '15 min' },
@@ -65,6 +87,7 @@ export function CreateJobSheet({
   const [newCriteria, setNewCriteria] = useState('')
 
   const { data: staff } = useStaff()
+  const { data: zones = FALLBACK_ZONES } = useZoneNames()
   const createJob = useCreateJob()
   const toast = useToast()
 
@@ -105,8 +128,8 @@ export function CreateJobSheet({
       onSuccess: () => {
         toast.success(
           assignee
-            ? `Job pushed to ${assignee.name}`
-            : 'Job created successfully'
+            ? `Job assigned to ${assignee.name}`
+            : 'Job created'
         )
         resetForm()
         onOpenChange(false)
@@ -254,7 +277,7 @@ export function CreateJobSheet({
               Zone <span className="text-critical">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {STORE_ZONES.map((z) => (
+              {zones.map((z) => (
                 <button
                   key={z}
                   type="button"
@@ -376,7 +399,7 @@ export function CreateJobSheet({
             onClick={handleSubmit}
             disabled={!isValid || createJob.isPending}
           >
-            {createJob.isPending ? 'Creating...' : 'Push Job'}
+            {createJob.isPending ? 'Creating...' : 'Create Job'}
           </Button>
         </div>
       </SheetContent>

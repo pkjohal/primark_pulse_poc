@@ -5,18 +5,14 @@ import type { JobFilter } from '@/types'
 interface JobFiltersProps {
   activeFilter: JobFilter
   onFilterChange: (filter: JobFilter) => void
+  filters: { value: JobFilter; label: string }[]
   className?: string
 }
-
-const filters: { value: JobFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'my-jobs', label: 'My Jobs' },
-  { value: 'unassigned', label: 'Unassigned' },
-]
 
 export function JobFilters({
   activeFilter,
   onFilterChange,
+  filters,
   className,
 }: JobFiltersProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -47,7 +43,7 @@ export function JobFilters({
 
     window.addEventListener('resize', updateThumbPosition)
     return () => window.removeEventListener('resize', updateThumbPosition)
-  }, [activeFilter])
+  }, [activeFilter, filters])
 
   return (
     <div

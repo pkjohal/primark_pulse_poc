@@ -36,9 +36,10 @@ const JOB_SELECT = '*, zones(name), staff_members(id, users(name))'
 
 export function useJobs(filter?: JobFilter) {
   const storeId = useAuthStore(s => s.user?.store_id)
+  const userId = useAuthStore(s => s.user?.id)
 
   return useQuery({
-    queryKey: ['jobs', storeId, filter],
+    queryKey: ['jobs', storeId, filter, userId],
     queryFn: async (): Promise<Job[]> => {
       let query = supabase
         .from('jobs')
@@ -46,13 +47,38 @@ export function useJobs(filter?: JobFilter) {
         .eq('store_id', storeId!)
         .order('created_at', { ascending: false })
 
-      if (filter === 'unassigned') query = query.eq('status', 'unassigned')
+      if (filter === 'unassigned') {
+        query = query.eq('status', 'unassigned')
+      } else if (filter === 'done') {
+        query = query.eq('status', 'complete')
+      } else if (!filter || filter === 'all') {
+        query = query.neq('status', 'complete')
+      }
+
+      if (filter === 'my-jobs' || filter === 'my-done') {
+        const { data: sm } = await supabase
+          .from('staff_members')
+          .select('id')
+          .eq('user_id', userId!)
+          .eq('store_id', storeId!)
+          .maybeSingle()
+        if (sm) {
+          query = query.eq('assignee_id', sm.id)
+          if (filter === 'my-done') {
+            query = query.eq('status', 'complete')
+          } else {
+            query = query.neq('status', 'complete')
+          }
+        } else {
+          return []
+        }
+      }
 
       const { data, error } = await query
       if (error) throw error
       return (data ?? []).map(row => rowToJob(row as Record<string, unknown>))
     },
-    enabled: !!storeId,
+    enabled: !!storeId && !!userId,
     refetchInterval: 30000,
   })
 }
@@ -88,6 +114,7 @@ export function useCreateJob() {
       const { data, error } = await supabase
         .from('jobs')
         .insert({
+          id: crypto.randomUUID(),
           store_id: storeId!,
           title: params.title,
           description: params.description,
@@ -106,7 +133,7 @@ export function useCreateJob() {
       return rowToJob(data as Record<string, unknown>)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs', storeId] })
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
     },
   })
 }
