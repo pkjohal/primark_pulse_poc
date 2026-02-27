@@ -145,13 +145,12 @@ export default function JobsPage() {
       </div>
 
       {/* Filters */}
-      <div className="animate-fade-in-scale">
-        <JobFilters
-          activeFilter={filter}
-          onFilterChange={handleFilterChange}
-          filters={isStaff ? STAFF_FILTERS : MANAGER_FILTERS}
-        />
-      </div>
+      <JobFilters
+        activeFilter={filter}
+        onFilterChange={handleFilterChange}
+        filters={isStaff ? STAFF_FILTERS : MANAGER_FILTERS}
+        className="animate-fade-in-scale"
+      />
 
       {/* Job List */}
       {isLoading ? (
