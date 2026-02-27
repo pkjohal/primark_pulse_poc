@@ -1,367 +1,411 @@
-# Data Model — Primark Pulse.ai
+# Data Model — Primark Pulse
 
-**Version:** 1.0
-**Date:** 2026-02-25
-**Source:** Reverse-engineered from codebase
+**Version:** 2.0
+**Date:** 2026-02-27
+**Source:** Reverse-engineered from `supabase/schema.sql` and `src/hooks/*.ts`
 
 ---
 
 ## 1. Entity Relationship Diagram
 
+> The diagram below covers the core domain entities. Supporting tables (`store_metrics`, `ai_suggestions`, `notifications`, `store_pressure`) are described in section 2 but omitted from the ERD for clarity.
+
 ```mermaid
 erDiagram
-  USER {
-    string email PK
-    string name
-    string store
-    string role
-    string token
+  LOCATIONS {
+    text id PK
+    text name
+    boolean is_active
+    timestamptz created_at
   }
-
-  STAFF_MEMBER {
-    string id PK
-    string name
-    string avatar
-    string zone
-    string status
-    string shiftStart
-    string shiftEnd
+  USERS {
+    text id PK
+    text store_id FK
+    text name
+    text role
+    text pin
+    boolean is_active
+    timestamptz created_at
   }
-
-  STAFF_SKILL {
-    string staffId FK
-    string skill
+  ZONES {
+    text id PK
+    text store_id FK
+    text name
+    text type
   }
-
-  JOB {
-    string id PK
-    string title
-    string description
-    string priority
-    string status
-    string zone
-    string assignee FK
-    int sla
-    boolean aiSuggested
-    string createdAt
-    string startedAt
-    string completedAt
-    int completedIn
-    string whyItMatters
+  STAFF_MEMBERS {
+    text id PK
+    text user_id FK
+    text store_id FK
+    text zone_id FK
+    text status
+    text shift_start
+    text shift_end
   }
-
-  PEER_TIP {
-    string jobId FK
-    string storeName
-    string tip
+  JOBS {
+    text id PK
+    text store_id FK
+    text zone_id FK
+    text assignee_id FK
+    text title
+    text description
+    text priority
+    text status
+    int sla_minutes
+    boolean ai_suggested
+    text why_it_matters
+    text peer_tip_store
+    text peer_tip_text
+    timestamptz created_at
+    timestamptz started_at
+    timestamptz completed_at
+    int completed_in
+    timestamptz updated_at
   }
-
-  ESCALATION_INFO {
-    string jobId FK
-    string escalatedAt
-    string escalatedBy
-    string reason
-    string notes
-    string escalatedTo
-    string status
+  ESCALATIONS {
+    text id PK
+    text job_id FK
+    text escalated_by FK
+    text reason
+    text notes
+    text escalated_to
+    text status
+    timestamptz created_at
   }
-
-  TASK {
-    string id PK
-    string title
-    string description
-    string priority
-    string status
-    string zone
-    string assignee FK
-    int sla
-    boolean aiSuggested
-    string createdAt
-    string completedAt
-    int completedIn
+  TASKS {
+    text id PK
+    text store_id FK
+    text zone_id FK
+    text assignee_id FK
+    text title
+    text priority
+    text status
+    int sla_minutes
+    boolean ai_suggested
+    timestamptz created_at
+    timestamptz completed_at
+    int completed_in
   }
-
-  ALERT {
-    string id PK
-    string type
-    string message
-    string zone
-    string timestamp
-    boolean aiGenerated
-    boolean dismissed
+  PRODUCTS {
+    text id PK
+    text barcode
+    text name
+    numeric price
+    text category
+    text subcategory
+    text size
+    text color
+    boolean click_collect
   }
-
-  PRODUCT {
-    string barcode PK
-    string name
-    number price
-    string category
-    string subcategory
-    string size
-    string color
-    int storeStock
-    int nearbyStock
-    int dcStock
-    boolean clickCollect
-    string imageUrl
+  STOCK_LEVELS {
+    text id PK
+    text product_id FK
+    text store_id FK
+    int store_stock
+    int nearby_stock
+    int dc_stock
   }
-
-  STOCK_VARIANT {
-    string productBarcode FK
-    string size
-    string color
+  STOCK_VARIANTS {
+    text id PK
+    text product_id FK
+    text size
+    text color
     int quantity
-    string sku
+    text sku
   }
-
-  ZONE_LOCATION {
-    string productBarcode FK
-    string zone
-    string aisle
-    string bay
-    string shelf
+  STOCK_LOCATIONS {
+    text id PK
+    text product_id FK
+    text store_id FK
+    text zone
+    text aisle
+    text bay
+    text shelf
   }
-
-  BASKET_ITEM {
-    string productBarcode FK
+  STOCK_ISSUES {
+    text id PK
+    text product_id FK
+    text store_id FK
+    text issue_type
+    text notes
+    text reported_by FK
+    text zone
+    text status
+    timestamptz reported_at
+  }
+  REPLENISHMENT_BASKETS {
+    text id PK
+    text store_id FK
+    text user_id FK
+    text status
+    timestamptz created_at
+  }
+  REPLENISHMENT_BASKET_ITEMS {
+    text id PK
+    text basket_id FK
+    text product_id FK
     int quantity
   }
-
-  STOCK_ISSUE {
-    string id PK
-    string productBarcode FK
-    string productName
-    string issueType
-    string notes
-    string reportedBy
-    string reportedAt
-    string zone
-    string status
+  CHECKLISTS {
+    text id PK
+    text store_id FK
+    text type
+    text name
+    text description
+    text status
+    timestamptz scheduled_for
+    timestamptz started_at
+    timestamptz completed_at
+    text completed_by FK
+    text signature_data
   }
-
-  CHECKLIST_ITEM {
-    string id PK
-    string category
-    string item
-    boolean completed
-    string completedAt
-    string completedBy
-    int order
+  CHECKLIST_SECTIONS {
+    text id PK
+    text checklist_id FK
+    text name
+    int sort_order
   }
-
-  CHECKLIST {
-    string id PK
-    string type
-    string name
-    string description
-    string scheduledFor
-    string status
-    string startedAt
-    string completedAt
-    string completedBy
-    int totalItems
-    int completedItems
-  }
-
-  CHECKLIST_SECTION {
-    string id PK
-    string checklistId FK
-    string name
-    int order
-    int completedCount
-    int totalCount
-  }
-
-  ENHANCED_CHECKLIST_ITEM {
-    string id PK
-    string checklistId FK
-    string sectionId FK
-    string category
-    string item
-    string description
-    string inputType
+  CHECKLIST_ITEMS {
+    text id PK
+    text section_id FK
+    text category
+    text item
+    text description
+    text input_type
     boolean required
-    int order
+    int sort_order
+    int numeric_min
+    int numeric_max
+    text numeric_unit
   }
-
-  CHECKLIST_ITEM_RESPONSE {
-    string itemId FK
-    string value
-    string photoUrl
-    string completedAt
-    string completedBy
-    string notes
+  CHECKLIST_RESPONSES {
+    text id PK
+    text item_id FK
+    text user_id FK
+    boolean value_bool
+    numeric value_numeric
+    text value_text
+    text photo_url
+    text notes
+    timestamptz completed_at
   }
-
-  FLAGGED_ISSUE {
-    string id PK
-    string itemId FK
-    string description
-    string severity
-    string photoUrl
-    string flaggedAt
-    string flaggedBy
-    string status
+  FLAGGED_ISSUES {
+    text id PK
+    text item_id FK
+    text description
+    text severity
+    text photo_url
+    text flagged_by FK
+    timestamptz flagged_at
+    text status
   }
-
-  INCIDENT_REPORT {
-    string id PK
-    string type
-    string location
-    string occurredAt
-    string reportedAt
-    string reportedBy
-    string description
-    string photoUrl
-    string severity
-    string status
-    boolean followUpRequired
+  INCIDENT_REPORTS {
+    text id PK
+    text store_id FK
+    text type
+    text location
+    timestamptz occurred_at
+    text reported_by FK
+    text description
+    text severity
+    text status
+    boolean follow_up_required
+    text photo_url
   }
-
-  QUEUE_STATUS {
-    string id PK
-    string name
-    int current
+  MESSAGES {
+    text id PK
+    text store_id FK
+    text sender_id FK
+    text type
+    text scope
+    text priority
+    text title
+    text body
+    text linked_job_id FK
+    timestamptz sent_at
+    boolean requires_acknowledgment
+    int total_recipients
+    boolean has_photo
+    text photo_url
+  }
+  MESSAGE_ACKNOWLEDGMENTS {
+    text id PK
+    text message_id FK
+    text user_id FK
+    timestamptz acknowledged_at
+  }
+  SHIFTS {
+    text id PK
+    text store_id FK
+    text user_id FK
+    text zone_id FK
+    text date
+    text start_time
+    text end_time
+    text break_start
+    int break_duration_mins
+    text role
+    text status
+    text offered_by FK
+  }
+  SHIFT_SWAP_REQUESTS {
+    text id PK
+    text shift_id FK
+    text requester_id FK
+    text acceptor_id FK
+    text status
+    timestamptz created_at
+  }
+  QUEUE_STATUSES {
+    text id PK
+    text store_id FK
+    text name
+    int current_length
     int threshold
-    int max
-    string status
+    int max_capacity
+    text status
+    timestamptz updated_at
+  }
+  ALERTS {
+    text id PK
+    text store_id FK
+    text zone_id FK
+    text type
+    text message
+    boolean ai_generated
+    boolean dismissed
+    text dismissed_by FK
+    timestamptz created_at
   }
 
-  MESSAGE {
-    string id PK
-    string type
-    string scope
-    string priority
-    string title
-    string body
-    string linkedJobId FK
-    string sentAt
-    string expiresAt
-    boolean requiresAcknowledgment
-    int totalRecipients
-    int replyCount
-    boolean hasPhoto
-  }
-
-  MESSAGE_SENDER {
-    string messageId FK
-    string senderId
-    string senderName
-    string senderRole
-  }
-
-  MESSAGE_ACKNOWLEDGMENT {
-    string messageId FK
-    string userId
-    string userName
-    string acknowledgedAt
-  }
-
-  SCHEDULED_SHIFT {
-    string id PK
-    string date
-    string startTime
-    string endTime
-    string breakStart
-    int breakDuration
-    string zone
-    string role
-    string status
-  }
-
-  AI_SUGGESTION {
-    string id PK
-    string suggestionText
-    string explanation
-    string primaryAction
-    string actionPath
-    boolean dismissible
-    string timestamp
-  }
-
-  USER ||--o{ TASK : "assigned to"
-  USER ||--o{ JOB : "assigned to"
-  STAFF_MEMBER ||--o{ STAFF_SKILL : "has"
-  JOB ||--o| PEER_TIP : "has"
-  JOB ||--o| ESCALATION_INFO : "has"
-  PRODUCT ||--o{ STOCK_VARIANT : "has"
-  PRODUCT ||--o| ZONE_LOCATION : "located at"
-  PRODUCT ||--o{ BASKET_ITEM : "in basket"
-  PRODUCT ||--o{ STOCK_ISSUE : "has issues"
-  CHECKLIST ||--o{ CHECKLIST_SECTION : "contains"
-  CHECKLIST_SECTION ||--o{ ENHANCED_CHECKLIST_ITEM : "contains"
-  ENHANCED_CHECKLIST_ITEM ||--o| CHECKLIST_ITEM_RESPONSE : "has response"
-  ENHANCED_CHECKLIST_ITEM ||--o| FLAGGED_ISSUE : "may flag"
-  MESSAGE ||--o| MESSAGE_SENDER : "sent by"
-  MESSAGE ||--o{ MESSAGE_ACKNOWLEDGMENT : "acknowledged by"
+  LOCATIONS ||--o{ USERS : "has staff"
+  LOCATIONS ||--o{ ZONES : "has zones"
+  LOCATIONS ||--o{ STAFF_MEMBERS : "employs"
+  LOCATIONS ||--o{ JOBS : "has jobs"
+  LOCATIONS ||--o{ CHECKLISTS : "has checklists"
+  LOCATIONS ||--o{ MESSAGES : "has messages"
+  LOCATIONS ||--o{ SHIFTS : "has shifts"
+  LOCATIONS ||--o{ QUEUE_STATUSES : "monitors"
+  LOCATIONS ||--o{ ALERTS : "raises"
+  USERS ||--o{ STAFF_MEMBERS : "is"
+  USERS ||--o{ SHIFTS : "works"
+  ZONES ||--o{ STAFF_MEMBERS : "assigned to"
+  ZONES ||--o{ JOBS : "work in"
+  ZONES ||--o{ ALERTS : "raised in"
+  STAFF_MEMBERS ||--o{ JOBS : "assigned"
+  JOBS ||--o{ ESCALATIONS : "escalated via"
+  PRODUCTS ||--o{ STOCK_LEVELS : "has levels"
+  PRODUCTS ||--o{ STOCK_VARIANTS : "has variants"
+  PRODUCTS ||--o{ STOCK_LOCATIONS : "located at"
+  PRODUCTS ||--o{ STOCK_ISSUES : "has issues"
+  PRODUCTS ||--o{ REPLENISHMENT_BASKET_ITEMS : "in baskets"
+  REPLENISHMENT_BASKETS ||--o{ REPLENISHMENT_BASKET_ITEMS : "contains"
+  CHECKLISTS ||--o{ CHECKLIST_SECTIONS : "has sections"
+  CHECKLIST_SECTIONS ||--o{ CHECKLIST_ITEMS : "has items"
+  CHECKLIST_ITEMS ||--o{ CHECKLIST_RESPONSES : "has responses"
+  CHECKLIST_ITEMS ||--o{ FLAGGED_ISSUES : "may flag"
+  MESSAGES ||--o{ MESSAGE_ACKNOWLEDGMENTS : "acknowledged by"
+  SHIFTS ||--o{ SHIFT_SWAP_REQUESTS : "swap requested"
 ```
 
 ---
 
 ## 2. Entities
 
-### USER
+### LOCATIONS (stores)
 
-**Source:** `src/stores/authStore.ts`
-**Description:** An authenticated store employee. Persisted to `localStorage` via Zustand persist under key `primark-pulse-auth`.
+**Table:** `locations`
+**Description:** A physical Primark store location. Each user, staff member, job, shift, and checklist belongs to a location.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `email` | string | No | Login email, used as identity |
-| `name` | string | No | Display name (e.g., "Emma Thompson") |
-| `store` | string | No | Store name (e.g., "Manchester Arndale") |
-| `role` | enum | No | User role — see enumeration below |
-| `token` | string | No | Mock JWT token stored in auth state |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key (e.g., `store-manchester`) |
+| `name` | text | No | Display name (e.g., "Manchester Arndale") |
+| `is_active` | boolean | No | Whether this location is operational |
+| `created_at` | timestamptz | No | Record creation timestamp |
+
+---
+
+### USERS
+
+**Table:** `users`
+**Description:** A store employee who can log in to Primark Pulse. Identity is verified by a 4-digit PIN. PIN is stored as plain text for PoC.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `name` | text | No | Display name |
+| `role` | text | No | User role — see enumeration below |
+| `pin` | text | No | 4-digit PIN (plain text in PoC) |
+| `is_active` | boolean | No | Whether this user can log in |
+| `created_at` | timestamptz | No | Record creation timestamp |
 
 **Role values:** `staff` \| `floor-lead` \| `manager`
 
 ---
 
-### STAFF_MEMBER
+### ZONES
 
-**Source:** `src/types/index.ts`, `src/mocks/data/staff.ts`
-**Description:** A store employee visible on the roster. Different from `USER` — this is the staff directory visible to managers, not the authenticated session.
+**Table:** `zones`
+**Description:** A physical zone within a store (e.g., Womenswear, Stockroom, Fitting Rooms).
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique staff identifier |
-| `name` | string | No | Privacy-safe name (e.g., "Sarah M.") |
-| `avatar` | string | Yes | Initials or image URL for avatar display |
-| `zone` | string | No | Current zone assignment (e.g., "Womenswear") |
-| `status` | enum | No | Current availability state |
-| `shiftStart` | string | No | Shift start in HH:mm format |
-| `shiftEnd` | string | No | Shift end in HH:mm format |
-| `skills[]` | string[] | No | Array of skill tags (e.g., "Till Trained") |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `name` | text | No | Zone display name |
+| `type` | text | Yes | Zone category |
+
+**Type values:** `floor` \| `stockroom` \| `tills` \| `fitting` \| `entrance`
+
+---
+
+### STAFF_MEMBERS
+
+**Table:** `staff_members`
+**Description:** A staff member's current roster entry, including their zone assignment, shift times, and availability status. A STAFF_MEMBER may or may not be linked to a `users` account.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `user_id` | text | Yes | FK to `users` (nullable for non-app staff) |
+| `store_id` | text | No | FK to `locations` |
+| `zone_id` | text | Yes | FK to `zones` — current zone assignment |
+| `status` | text | No | Current availability |
+| `shift_start` | text | Yes | Shift start time in HH:mm |
+| `shift_end` | text | Yes | Shift end time in HH:mm |
 
 **Status values:** `active` \| `break` \| `absent`
 
 ---
 
-### JOB
+### JOBS
 
-**Source:** `src/types/index.ts`
-**Description:** A piece of work to be executed in-store. Jobs have SLA timers, priority levels, and can be escalated. Intended as the primary task type visible to floor staff.
+**Table:** `jobs`
+**Description:** An operational task to be executed in-store. Jobs have SLA timers, priority levels, and can be escalated. The primary work entity visible to floor staff.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique job identifier |
-| `title` | string | No | Job headline (e.g., "Restock Denim — Zone B") |
-| `description` | string | Yes | Additional context |
-| `priority` | enum | No | Urgency level |
-| `status` | enum | No | Lifecycle state |
-| `zone` | string | No | Store zone where work is required |
-| `assignee` | string\|null | Yes | Staff ID of assignee, or null if unassigned |
-| `assigneeName` | string | Yes | Display name of assignee |
-| `sla` | number | No | Service level agreement target in minutes |
-| `aiSuggested` | boolean | No | Whether this job was AI-generated |
-| `createdAt` | string | No | ISO 8601 creation timestamp |
-| `startedAt` | string | Yes | ISO 8601 start timestamp |
-| `completedAt` | string | Yes | ISO 8601 completion timestamp |
-| `completedIn` | number | Yes | Actual minutes taken to complete |
-| `whyItMatters` | string | Yes | Human-focused reason (e.g., "Customers keep asking for these sizes") |
-| `successCriteria[]` | string[] | Yes | Completion criteria list |
-| `peerTip` | PeerTip | Yes | Practical tip from another store |
-| `escalation` | EscalationInfo | Yes | Populated when job is escalated |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `zone_id` | text | Yes | FK to `zones` |
+| `assignee_id` | text | Yes | FK to `staff_members` — null when unassigned |
+| `title` | text | No | Job headline |
+| `description` | text | Yes | Additional context |
+| `priority` | text | No | Urgency level |
+| `status` | text | No | Lifecycle state |
+| `sla_minutes` | int | No | SLA target in minutes |
+| `ai_suggested` | boolean | No | Whether AI-generated |
+| `why_it_matters` | text | Yes | Human-focused context |
+| `success_criteria` | text[] | Yes | Completion criteria |
+| `peer_tip_store` | text | Yes | Store name providing a tip |
+| `peer_tip_text` | text | Yes | Tip text from peer store |
+| `created_at` | timestamptz | No | Creation timestamp |
+| `started_at` | timestamptz | Yes | When staff started the job |
+| `completed_at` | timestamptz | Yes | Completion timestamp |
+| `completed_in` | int | Yes | Actual minutes taken |
+| `updated_at` | timestamptz | Yes | Last updated timestamp |
 
 **Priority values:** `CRITICAL` \| `HIGH` \| `MEDIUM` \| `LOW`
 
@@ -369,84 +413,182 @@ erDiagram
 
 ---
 
-### TASK
+### ESCALATIONS
 
-**Source:** `src/types/index.ts`
-**Description:** A simpler work item. Similar to Job but without peer tips, escalation, or human-context fields. Appears to be a legacy type alongside the richer Job entity.
+**Table:** `escalations`
+**Description:** An escalation record attached to a job when a staff member cannot resolve it independently.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique task identifier |
-| `title` | string | No | Task headline |
-| `priority` | enum | No | Urgency level — same values as Job |
-| `status` | enum | No | Lifecycle state (no `escalated` state) |
-| `zone` | string | No | Store zone |
-| `assignee` | string\|null | Yes | Assigned staff ID |
-| `sla` | number | No | SLA target in minutes |
-| `aiSuggested` | boolean | No | AI-generated flag |
-| `createdAt` | string | No | ISO 8601 creation timestamp |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `job_id` | text | No | FK to `jobs` |
+| `escalated_by` | text | Yes | FK to `users` |
+| `reason` | text | No | Escalation reason |
+| `notes` | text | Yes | Free-text notes |
+| `escalated_to` | text | No | Escalation target |
+| `status` | text | No | Escalation state |
+| `created_at` | timestamptz | No | When escalation was filed |
 
-**Status values:** `unassigned` \| `pending` \| `in-progress` \| `complete`
+**Reason values:** `cant-complete` \| `need-help` \| `equipment-issue` \| `stock-issue` \| `other`
 
----
-
-### ALERT
-
-**Source:** `src/types/index.ts`
-**Description:** A real-time operational alert shown on the Home dashboard. Can be AI-generated or manually raised.
-
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique alert identifier |
-| `type` | enum | No | Severity classification |
-| `message` | string | No | Alert description text |
-| `zone` | string | No | Zone where the alert originated |
-| `timestamp` | string | No | ISO 8601 timestamp |
-| `aiGenerated` | boolean | No | True if raised by the AI engine |
-| `dismissed` | boolean | Yes | Whether the user has dismissed this alert |
-
-**Type values:** `critical` \| `warning` \| `info`
+**Escalated to values:** `store-manager` \| `regional-manager`
 
 ---
 
-### PRODUCT
+### TASKS
 
-**Source:** `src/types/index.ts`
-**Description:** A retail product that can be looked up by barcode or searched by name. Includes multi-location stock levels and physical floor location.
+**Table:** `tasks`
+**Description:** A simpler work item. Similar to Job but without peer tips, escalation, or contextual fields. Appears to be a legacy entity alongside the richer `jobs` entity; its page (`/tasks`) is not in the main navigation.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `barcode` | string | No | Primary identifier — scanned or entered |
-| `name` | string | No | Product display name |
-| `price` | number | No | Retail price in GBP |
-| `category` | string | No | Top-level category (e.g., "Menswear") |
-| `subcategory` | string | Yes | Sub-category (e.g., "Denim") |
-| `size` | string | No | Primary size variant |
-| `color` | string | Yes | Primary colour variant |
-| `variants[]` | StockVariant[] | Yes | Full size/colour breakdown with quantities |
-| `location` | ZoneLocation | Yes | Physical floor location |
-| `storeStock` | number | No | Units in this store |
-| `nearbyStock` | number | No | Units in nearby stores |
-| `dcStock` | number | No | Units at distribution centre |
-| `clickCollect` | boolean | No | Whether click & collect is available |
-| `imageUrl` | string | Yes | Product image URL |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `zone_id` | text | Yes | FK to `zones` |
+| `assignee_id` | text | Yes | FK to `staff_members` |
+| `title` | text | No | Task headline |
+| `priority` | text | No | Urgency level |
+| `status` | text | No | Lifecycle state (no `escalated`) |
+| `sla_minutes` | int | No | SLA target in minutes |
+| `ai_suggested` | boolean | No | AI-generated flag |
+| `created_at` | timestamptz | No | Creation timestamp |
 
 ---
 
-### CHECKLIST (Enhanced)
+### PRODUCTS
 
-**Source:** `src/types/index.ts`
-**Description:** An operational checklist (opening, closing, safety, or ad-hoc) with multiple sections, structured item responses, and digital signature capture.
+**Table:** `products`
+**Description:** A retail product that can be looked up by barcode. Stock levels, variants, and floor location are stored in separate related tables.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique checklist identifier |
-| `type` | enum | No | Checklist category |
-| `name` | string | No | Display name (e.g., "Store Closing Checklist") |
-| `status` | enum | No | Completion state |
-| `totalItems` | number | No | Total checklist items |
-| `completedItems` | number | No | Items completed so far |
-| `signature` | SignatureData | Yes | Digital signature at completion |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `barcode` | text | No | EAN/UPC barcode (unique) |
+| `name` | text | No | Product display name |
+| `price` | numeric | No | Retail price in GBP |
+| `category` | text | No | Top-level category |
+| `subcategory` | text | Yes | Sub-category |
+| `size` | text | Yes | Primary size variant |
+| `color` | text | Yes | Primary colour variant |
+| `click_collect` | boolean | No | Click & collect availability |
+
+---
+
+### STOCK_LEVELS
+
+**Table:** `stock_levels`
+**Description:** Store-specific stock availability for a product.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `product_id` | text | No | FK to `products` |
+| `store_id` | text | No | FK to `locations` |
+| `store_stock` | int | No | Units in this store |
+| `nearby_stock` | int | No | Units in nearby stores |
+| `dc_stock` | int | No | Units at distribution centre |
+
+---
+
+### STOCK_VARIANTS
+
+**Table:** `stock_variants`
+**Description:** Individual size/colour combinations for a product with their own stock count.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `product_id` | text | No | FK to `products` |
+| `size` | text | No | Size (e.g., "M", "32W") |
+| `color` | text | No | Colour |
+| `quantity` | int | No | Units available |
+| `sku` | text | No | SKU code |
+
+---
+
+### STOCK_LOCATIONS
+
+**Table:** `stock_locations`
+**Description:** Physical floor location of a product within a specific store.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `product_id` | text | No | FK to `products` |
+| `store_id` | text | No | FK to `locations` |
+| `zone` | text | No | Zone name |
+| `aisle` | text | No | Aisle label |
+| `bay` | text | No | Bay number |
+| `shelf` | text | Yes | Shelf level |
+
+---
+
+### STOCK_ISSUES
+
+**Table:** `stock_issues`
+**Description:** A reported stock discrepancy or damage report for a product.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `product_id` | text | Yes | FK to `products` |
+| `store_id` | text | No | FK to `locations` |
+| `issue_type` | text | No | Type of issue |
+| `notes` | text | Yes | Free-text notes |
+| `reported_by` | text | Yes | FK to `users` |
+| `zone` | text | Yes | Where the issue was found |
+| `status` | text | No | Resolution state |
+| `reported_at` | timestamptz | No | When reported |
+
+**Issue type values:** `wrong-location` \| `damaged` \| `count-mismatch` \| `missing-tag` \| `display-issue` \| `other`
+
+**Status values:** `open` \| `acknowledged` \| `resolved`
+
+---
+
+### REPLENISHMENT_BASKETS / REPLENISHMENT_BASKET_ITEMS
+
+**Tables:** `replenishment_baskets`, `replenishment_basket_items`
+**Description:** A replenishment request basket created by a user, containing multiple product-quantity line items.
+
+`replenishment_baskets`:
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `user_id` | text | Yes | FK to `users` — who created it |
+| `status` | text | No | Basket state (`open`, `submitted`) |
+| `created_at` | timestamptz | No | Creation timestamp |
+
+`replenishment_basket_items`:
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `basket_id` | text | No | FK to `replenishment_baskets` |
+| `product_id` | text | No | FK to `products` |
+| `quantity` | int | No | Requested quantity |
+
+> Note: The in-app basket state is managed client-side via Zustand + localStorage (`src/hooks/useBasket.ts`). The `replenishment_baskets` table exists in the schema for server-side persistence when submitting.
+
+---
+
+### CHECKLISTS
+
+**Table:** `checklists`
+**Description:** An operational checklist (opening, closing, safety, or ad-hoc) with sections, items, responses, and digital signature capture.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `type` | text | No | Checklist category |
+| `name` | text | No | Display name |
+| `description` | text | Yes | Optional description |
+| `status` | text | No | Completion state |
+| `scheduled_for` | timestamptz | Yes | Scheduled execution time |
+| `started_at` | timestamptz | Yes | When started |
+| `completed_at` | timestamptz | Yes | When completed |
+| `completed_by` | text | Yes | FK to `users` |
+| `signature_data` | text | Yes | Base64-encoded signature image |
 
 **Type values:** `opening` \| `closing` \| `safety` \| `ad-hoc`
 
@@ -454,66 +596,77 @@ erDiagram
 
 ---
 
-### ENHANCED_CHECKLIST_ITEM
+### CHECKLIST_SECTIONS / CHECKLIST_ITEMS / CHECKLIST_RESPONSES
 
-**Source:** `src/types/index.ts`
-**Description:** A single item within an enhanced checklist. Supports multiple response input types including photo capture and signature.
+**Tables:** `checklist_sections`, `checklist_items`, `checklist_responses`
+**Description:** The hierarchical structure of a checklist. Each checklist has sections; each section has items; each item can have one response per user.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique item identifier |
-| `checklistId` | string | No | FK to parent Checklist |
-| `category` | string | No | Section grouping label |
-| `item` | string | No | Item description |
-| `inputType` | enum | No | How the response is captured |
-| `required` | boolean | No | Whether completion is mandatory |
-| `response` | ChecklistItemResponse | Yes | Populated when item is completed |
+`checklist_sections`: `id`, `checklist_id` FK, `name`, `sort_order`
+
+`checklist_items`: `id`, `section_id` FK, `category`, `item`, `description`, `input_type`, `required`, `sort_order`, `numeric_min`, `numeric_max`, `numeric_unit`
+
+`checklist_responses`: `id`, `item_id` FK, `user_id` FK, `value_bool`, `value_numeric`, `value_text`, `photo_url`, `notes`, `completed_at`
 
 **Input type values:** `boolean` \| `numeric` \| `photo` \| `text` \| `signature`
 
 ---
 
-### INCIDENT_REPORT
+### FLAGGED_ISSUES
 
-**Source:** `src/types/index.ts`
-**Description:** A formal incident report filed for health and safety events (slips, customer complaints, theft, etc.).
+**Table:** `flagged_issues`
+**Description:** A compliance issue flagged against a specific checklist item.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique incident identifier |
-| `type` | enum | No | Incident category |
-| `location` | string | No | Free-text location within store |
-| `occurredAt` | string | No | ISO 8601 time of incident |
-| `reportedAt` | string | No | ISO 8601 time of report creation |
-| `reportedBy` | string | No | Staff member who reported it |
-| `description` | string | No | Detailed description |
-| `severity` | enum | No | Impact level |
-| `status` | enum | No | Investigation state |
-| `followUpRequired` | boolean | No | Whether follow-up action is needed |
-
-**Incident type values:** `slip-fall` \| `customer-complaint` \| `theft` \| `equipment-failure` \| `injury` \| `other`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `item_id` | text | No | FK to `checklist_items` |
+| `description` | text | No | Issue description |
+| `severity` | text | No | Impact level |
+| `photo_url` | text | Yes | Evidence photo |
+| `flagged_by` | text | No | Staff name or FK |
+| `flagged_at` | timestamptz | No | When flagged |
+| `status` | text | No | Resolution state |
 
 **Severity values:** `low` \| `medium` \| `high`
 
+**Status values:** `open` \| `acknowledged` \| `resolved`
+
 ---
 
-### MESSAGE
+### INCIDENT_REPORTS
 
-**Source:** `src/types/index.ts`
-**Description:** A team communication message. Supports multiple scopes (store-wide, zone, role, individual) and can be linked to a Job. Requires optional acknowledgment tracking.
+**Table:** `incident_reports`
+**Description:** A formal safety or operational incident report.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique message identifier |
-| `type` | enum | No | Message category |
-| `scope` | enum | No | Target audience |
-| `priority` | enum | No | Message urgency |
-| `title` | string | Yes | Optional headline |
-| `body` | string | No | Message content |
-| `linkedJobId` | string | Yes | Optional FK to a Job |
-| `sentAt` | string | No | ISO 8601 send timestamp |
-| `requiresAcknowledgment` | boolean | No | Whether recipients must confirm receipt |
-| `acknowledgments[]` | MessageAcknowledgment[] | No | List of acknowledgment records |
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `type` | text | No | Incident category |
+| `location` | text | No | Free-text location within store |
+| `occurred_at` | timestamptz | No | Time of incident |
+| `reported_by` | text | No | Reporting staff name |
+| `description` | text | No | Detailed description |
+| `severity` | text | No | Impact level |
+| `status` | text | No | Investigation state |
+| `follow_up_required` | boolean | No | Whether follow-up is needed |
+| `photo_url` | text | Yes | Evidence photo |
+| `witnesses` | text[] | Yes | List of witness names |
+
+**Incident type values:** `slip-fall` \| `customer-complaint` \| `theft` \| `equipment-failure` \| `injury` \| `other`
+
+**Status values:** `open` \| `investigating` \| `resolved`
+
+---
+
+### MESSAGES / MESSAGE_ACKNOWLEDGMENTS
+
+**Table:** `messages`, `message_acknowledgments`
+**Description:** Team communications with optional acknowledgment tracking. Messages can be scoped to the whole store, a zone, a role group, or an individual.
+
+`messages` key columns: `id`, `store_id` FK, `sender_id` FK, `type`, `scope`, `priority`, `title`, `body`, `target_zones` (text[]), `target_roles` (text[]), `linked_job_id` FK, `sent_at`, `requires_acknowledgment`, `total_recipients`
+
+`message_acknowledgments`: `id`, `message_id` FK, `user_id` FK, `acknowledged_at`
 
 **Type values:** `announcement` \| `alert` \| `update` \| `chat`
 
@@ -523,65 +676,113 @@ erDiagram
 
 ---
 
-### SCHEDULED_SHIFT
+### SHIFTS / SHIFT_SWAP_REQUESTS
 
-**Source:** `src/types/index.ts`
-**Description:** A single work shift for the logged-in user. Includes break scheduling and shift-swap status.
+**Table:** `shifts`, `shift_swap_requests`
+**Description:** Individual work shifts for a user. Shift swaps are facilitated by setting `status = 'available'` on a shift and optionally recording the `offered_by` user.
 
-| Field | Type | Nullable | Description |
-|-------|------|----------|-------------|
-| `id` | string | No | Unique shift identifier |
-| `date` | string | No | Date in YYYY-MM-DD format |
-| `startTime` | string | No | Start time in HH:mm format |
-| `endTime` | string | No | End time in HH:mm format |
-| `breakStart` | string | Yes | Break start in HH:mm format |
-| `breakDuration` | number | Yes | Break length in minutes |
-| `zone` | string | No | Zone assignment for this shift |
-| `role` | string | No | Role for this shift |
-| `status` | enum | No | Shift state |
+`shifts` key columns: `id`, `store_id` FK, `user_id` FK, `zone_id` FK, `date`, `start_time`, `end_time`, `break_start`, `break_duration_mins`, `role`, `status`, `offered_by` FK
 
-**Status values:** `confirmed` \| `pending-swap` \| `available`
+`shift_swap_requests`: `id`, `shift_id` FK, `requester_id` FK, `acceptor_id` FK, `status`, `created_at`
+
+**Shift status values:** `confirmed` \| `available` \| `pending-swap`
+
+---
+
+### QUEUE_STATUSES
+
+**Table:** `queue_statuses`
+**Description:** Live queue length readings for monitored areas in a store.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `name` | text | No | Queue point name (e.g., "Main Tills") |
+| `current_length` | int | No | Current queue depth |
+| `threshold` | int | No | Warning threshold |
+| `max_capacity` | int | No | Maximum capacity |
+| `status` | text | No | Queue state |
+| `updated_at` | timestamptz | No | Last reading time |
+
+**Status values:** `normal` \| `over-threshold`
+
+---
+
+### ALERTS
+
+**Table:** `alerts`
+**Description:** Real-time operational alerts shown on the home dashboard.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | text | No | Primary key |
+| `store_id` | text | No | FK to `locations` |
+| `zone_id` | text | Yes | FK to `zones` |
+| `type` | text | No | Alert severity |
+| `message` | text | No | Alert description |
+| `ai_generated` | boolean | No | Whether AI-generated |
+| `dismissed` | boolean | No | Whether dismissed by a user |
+| `dismissed_by` | text | Yes | FK to `users` |
+| `created_at` | timestamptz | No | Alert creation time |
+
+**Type values:** `critical` \| `warning` \| `info`
+
+---
+
+### AI_SUGGESTIONS / STORE_METRICS / STORE_PRESSURE / NOTIFICATIONS
+
+These supporting tables provide data for the home dashboard and AI features:
+
+- **`ai_suggestions`:** Stores AI-generated action recommendations (`suggestion_text`, `explanation`, `primary_action`, `action_path`, `dismissible`, `store_id`)
+- **`store_metrics`:** Pre-computed snapshot of store KPIs (`staff_active`, `staff_total`, `open_tasks`, `critical_tasks`, `compliance_progress`, `store_status`, `store_id`)
+- **`store_pressure`:** Demand indicator (`level`, `peak_forecast`, `store_id`, `updated_at`)
+- **`notifications`:** App notifications for individual users (`user_id`, `title`, `body`, `read`, `created_at`)
+
+> Note: `useStoreMetrics` hook does **not** use the `store_metrics` table — it computes metrics live from `staff_members`, `jobs`, `checklists`, and `stock_issues` tables (`src/hooks/useStoreMetrics.ts`).
 
 ---
 
 ## 3. Enumerations and Lookup Values
 
-| Entity | Field | Values |
-|--------|-------|--------|
-| USER | role | `staff`, `floor-lead`, `manager` |
-| STAFF_MEMBER | status | `active`, `break`, `absent` |
-| JOB | priority | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
-| JOB | status | `unassigned`, `pending`, `in-progress`, `complete`, `escalated` |
-| TASK | priority | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
-| TASK | status | `unassigned`, `pending`, `in-progress`, `complete` |
-| ALERT | type | `critical`, `warning`, `info` |
-| STOCK_ISSUE | issueType | `wrong-location`, `damaged`, `count-mismatch`, `missing-tag`, `display-issue`, `other` |
-| STOCK_ISSUE | status | `reported`, `acknowledged`, `resolved` |
-| CHECKLIST | type | `opening`, `closing`, `safety`, `ad-hoc` |
-| CHECKLIST | status | `not-started`, `in-progress`, `completed` |
-| ENHANCED_CHECKLIST_ITEM | inputType | `boolean`, `numeric`, `photo`, `text`, `signature` |
-| FLAGGED_ISSUE | severity | `low`, `medium`, `high` |
-| FLAGGED_ISSUE | status | `open`, `acknowledged`, `resolved` |
-| INCIDENT_REPORT | type | `slip-fall`, `customer-complaint`, `theft`, `equipment-failure`, `injury`, `other` |
-| INCIDENT_REPORT | severity | `low`, `medium`, `high` |
-| INCIDENT_REPORT | status | `reported`, `investigating`, `resolved` |
-| QUEUE_STATUS | status | `normal`, `over-threshold` |
-| MESSAGE | type | `announcement`, `alert`, `update`, `chat` |
-| MESSAGE | scope | `store`, `zone`, `role`, `individual`, `job` |
-| MESSAGE | priority | `critical`, `normal`, `low` |
-| SCHEDULED_SHIFT | status | `confirmed`, `pending-swap`, `available` |
-| ESCALATION_INFO | reason | `cant-complete`, `need-help`, `equipment-issue`, `stock-issue`, `other` |
-| ESCALATION_INFO | escalatedTo | `store-manager`, `regional-manager` |
-| ZONE | type | `floor`, `stockroom`, `tills`, `fitting`, `entrance` |
+| Table | Column | Values |
+|-------|--------|--------|
+| `users` | `role` | `staff`, `floor-lead`, `manager` |
+| `staff_members` | `status` | `active`, `break`, `absent` |
+| `jobs` | `priority` | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
+| `jobs` | `status` | `unassigned`, `pending`, `in-progress`, `complete`, `escalated` |
+| `tasks` | `priority` | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
+| `tasks` | `status` | `unassigned`, `pending`, `in-progress`, `complete` |
+| `escalations` | `reason` | `cant-complete`, `need-help`, `equipment-issue`, `stock-issue`, `other` |
+| `escalations` | `escalated_to` | `store-manager`, `regional-manager` |
+| `escalations` | `status` | `open`, `resolved` |
+| `zones` | `type` | `floor`, `stockroom`, `tills`, `fitting`, `entrance` |
+| `stock_issues` | `issue_type` | `wrong-location`, `damaged`, `count-mismatch`, `missing-tag`, `display-issue`, `other` |
+| `stock_issues` | `status` | `open`, `acknowledged`, `resolved` |
+| `checklists` | `type` | `opening`, `closing`, `safety`, `ad-hoc` |
+| `checklists` | `status` | `not-started`, `in-progress`, `completed` |
+| `checklist_items` | `input_type` | `boolean`, `numeric`, `photo`, `text`, `signature` |
+| `flagged_issues` | `severity` | `low`, `medium`, `high` |
+| `flagged_issues` | `status` | `open`, `acknowledged`, `resolved` |
+| `incident_reports` | `type` | `slip-fall`, `customer-complaint`, `theft`, `equipment-failure`, `injury`, `other` |
+| `incident_reports` | `severity` | `low`, `medium`, `high` |
+| `incident_reports` | `status` | `open`, `investigating`, `resolved` |
+| `queue_statuses` | `status` | `normal`, `over-threshold` |
+| `messages` | `type` | `announcement`, `alert`, `update`, `chat` |
+| `messages` | `scope` | `store`, `zone`, `role`, `individual`, `job` |
+| `messages` | `priority` | `critical`, `normal`, `low` |
+| `shifts` | `status` | `confirmed`, `available`, `pending-swap` |
+| `alerts` | `type` | `critical`, `warning`, `info` |
 
 ---
 
 ## 4. Key Constraints and Rules
 
-- A `Job` with `assignee = null` has status `unassigned`; assigning a staff member transitions it to `pending` — enforced in `src/hooks/useTasks.ts:23`
-- SLA urgency is calculated from `createdAt + sla (minutes)`: normal if >25% remaining, warning if 10–25%, critical if ≤10% — `src/hooks/useTasks.ts:145`
-- `BasketItem` quantities are persisted to `localStorage` under key `primark-pulse-basket` via Zustand persist — `src/hooks/useBasket.ts:73`
-- `USER` auth state is persisted to `localStorage` under key `primark-pulse-auth`; presence of `token` determines authenticated status
-- Checklist item responses include an optimistic update that rolls back on API failure — `src/hooks/useChecklist.ts:51`
-- `Message.acknowledgments[]` is mutated in-memory in the PoC (no database persistence) — `src/mocks/handlers.ts:349`
-- All API data is mocked — no real database exists; data resets on service worker restart
+- All tables reference `store_id` → `locations(id)`; every query in the app filters by `store_id` to ensure tenant isolation
+- `jobs.assignee_id = null` corresponds to `status = 'unassigned'`; assigning sets `status = 'pending'` — `src/hooks/useJobs.ts:122`
+- SLA urgency is computed from `created_at + sla_minutes`: >25% remaining = normal, 10–25% = warning, ≤10% or past = critical — `src/hooks/useJobs.ts:295`
+- Checklist responses use `UPSERT` on `id = 'resp-{itemId}-{userId}'` so a user can only have one response per item — `src/hooks/useChecklists.ts:206`
+- The client-side replenishment basket is persisted to `localStorage` via Zustand under key `primark-pulse-basket` — `src/hooks/useBasket.ts`
+- `USER` auth state is persisted to `localStorage` under key `primark-pulse-auth` version 1; bumped from version 0 when `store_id` field was added — `src/stores/authStore.ts:44`
+- Shift swap: `offers_by` FK is set on `shifts` when `status = 'available'`; cleared when shift is claimed via `useAcceptShift` — `src/hooks/useSchedule.ts:94`
+- Row Level Security is **disabled** on all tables for PoC — `supabase/schema.sql:10`
