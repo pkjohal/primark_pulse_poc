@@ -18,7 +18,6 @@ import type { Job, JobFilter } from '@/types'
 
 const MANAGER_FILTERS: { value: JobFilter; label: string }[] = [
   { value: 'all',        label: 'All'        },
-  { value: 'my-jobs',    label: 'My Jobs'    },
   { value: 'unassigned', label: 'Unassigned' },
   { value: 'done',       label: 'Done'       },
 ]
@@ -52,7 +51,7 @@ export default function JobsPage() {
   const updateJob = useUpdateJob()
 
   // Staff member ID for the current user (needed for assignment)
-  const myStaffMemberId = currentShift?.id
+  const myStaffMemberId = currentShift?.staffMemberId
 
   const handleFilterChange = (newFilter: JobFilter) => {
     if (newFilter === filter) return
@@ -86,6 +85,14 @@ export default function JobsPage() {
     setAssignOpen(true)
   }
 
+  const handleAssignFromCard = (jobId: string) => {
+    const job = jobs?.find(j => j.id === jobId)
+    if (job) {
+      setSelectedJob(job)
+      setAssignOpen(true)
+    }
+  }
+
   const handleEscalateClick = () => {
     setDetailOpen(false)
     setEscalateOpen(true)
@@ -114,9 +121,10 @@ export default function JobsPage() {
   }
 
   const handleAssignToMe = (jobId: string) => {
+    if (!myStaffMemberId) return
     updateJob.mutate({
       id: jobId,
-      assignee: myStaffMemberId ?? user?.id ?? null,
+      assignee: myStaffMemberId,
       assigneeName: user?.name?.split(' ')[0] || 'You',
       status: 'pending',
     })
@@ -184,6 +192,7 @@ export default function JobsPage() {
               onClick={() => handleJobClick(job)}
               onQuickComplete={handleQuickComplete}
               onAssignToMe={handleAssignToMe}
+              onAssign={handleAssignFromCard}
               className="animate-stagger-in"
               style={{ animationDelay: `${getAnimationDelay(index)}ms` }}
             />

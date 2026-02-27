@@ -36,20 +36,28 @@ export function SLATimer({ job, className, inline = false }: SLATimerProps) {
     return null
   }
 
+  const isNotStarted = job.status === 'unassigned' || job.status === 'pending'
+  const label = remainingMinutes <= 0 && isNotStarted
+    ? 'Not started'
+    : remainingMinutes <= 0
+      ? 'Running late'
+      : formatSLATime(remainingMinutes)
+  const colorClass = isNotStarted ? 'text-primary' : colorClasses[urgency]
+
   if (inline) {
     return (
-      <span className={cn('flex items-center gap-1', colorClasses[urgency], className)}>
+      <span className={cn('flex items-center gap-1', colorClass, className)}>
         <Clock className="w-3.5 h-3.5" />
-        <span>{formatSLATime(remainingMinutes)}</span>
+        <span>{label}</span>
       </span>
     )
   }
 
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
-      <Clock className={cn('w-3.5 h-3.5', colorClasses[urgency])} />
-      <span className={cn('text-xs font-medium', colorClasses[urgency])}>
-        {formatSLATime(remainingMinutes)}
+      <Clock className={cn('w-3.5 h-3.5', colorClass)} />
+      <span className={cn('text-xs font-medium', colorClass)}>
+        {label}
       </span>
     </div>
   )

@@ -67,9 +67,9 @@ export function StoreStatusCard({ metrics, className }: StoreStatusCardProps) {
               <span className="text-sm text-muted-foreground">Open Tasks</span>
               <span className="text-sm font-semibold">{metrics.openTasks}</span>
             </div>
-            {metrics.criticalTasks > 0 && (
+            {metrics.runningLateTasks > 0 && (
               <p className="text-xs text-critical font-medium">
-                {metrics.criticalTasks} critical
+                {metrics.runningLateTasks} running late
               </p>
             )}
           </div>

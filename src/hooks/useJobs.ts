@@ -288,7 +288,8 @@ export function useTopJobs() {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 export function calculateRemainingTime(job: Job): number {
-  const deadline = new Date(new Date(job.createdAt).getTime() + job.sla * 60 * 1000)
+  const startTime = job.startedAt ? new Date(job.startedAt) : new Date(job.createdAt)
+  const deadline = new Date(startTime.getTime() + job.sla * 60 * 1000)
   return Math.floor((deadline.getTime() - Date.now()) / 60000)
 }
 

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Users, Briefcase, Package, ClipboardCheck, X, Clock, Calendar } from 'lucide-react'
 import { useStoreMetrics } from '@/hooks/useStoreMetrics'
@@ -44,6 +46,83 @@ function MiniBars({ heights, className }: { heights: number[]; className?: strin
         )
       })}
     </svg>
+  )
+}
+
+interface DonutSegment { label: string; count: number; color: string; L: number; angle: number }
+interface TooltipState { seg: DonutSegment; x: number; y: number }
+
+function MiniDonut({ unassigned, notStarted, inProgress, runningLate }: {
+  unassigned: number; notStarted: number; inProgress: number; runningLate: number
+}) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const r = 14
+  const C = 2 * Math.PI * r
+  const total = unassigned + notStarted + inProgress + runningLate
+
+  if (total === 0) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor" className="text-muted" />
+      </svg>
+    )
+  }
+
+  const a1 = -90
+  const L1 = (unassigned / total) * C;  const a2 = a1 + (unassigned / total) * 360
+  const L2 = (notStarted / total) * C;  const a3 = a2 + (notStarted / total) * 360
+  const L3 = (inProgress / total) * C;  const a4 = a3 + (inProgress / total) * 360
+  const L4 = (runningLate / total) * C
+
+  const segments: DonutSegment[] = [
+    { label: 'Unassigned',   count: unassigned,   color: '#94a3b8', L: L1, angle: a1 },
+    { label: 'Not started',  count: notStarted,   color: '#3b82f6', L: L2, angle: a2 },
+    { label: 'In progress',  count: inProgress,   color: '#22c55e', L: L3, angle: a3 },
+    { label: 'Running late', count: runningLate,  color: '#ef4444', L: L4, angle: a4 },
+  ].filter(s => s.L > 0)
+
+  return (
+    <>
+      <svg width="100%" height="100%" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor" className="text-muted" />
+        {segments.map(seg => (
+          <g key={seg.label}>
+            <circle
+              cx="18" cy="18" r={r} strokeWidth="3" fill="none"
+              stroke={seg.color}
+              strokeDasharray={`${seg.L} ${C}`} strokeDashoffset={0}
+              transform={`rotate(${seg.angle} 18 18)`}
+            />
+            <circle
+              cx="18" cy="18" r={r} strokeWidth="9" fill="none" stroke="transparent"
+              strokeDasharray={`${seg.L} ${C}`} strokeDashoffset={0}
+              transform={`rotate(${seg.angle} 18 18)`}
+              style={{ cursor: 'pointer' }}
+              onPointerEnter={e => setTooltip({ seg, x: e.clientX, y: e.clientY })}
+              onPointerMove={e => setTooltip({ seg, x: e.clientX, y: e.clientY })}
+              onPointerLeave={() => setTooltip(null)}
+            />
+          </g>
+        ))}
+      </svg>
+      {tooltip && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: tooltip.x,
+            top: tooltip.y - 38,
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+          className="bg-popover border border-border rounded-md px-2 py-1 text-xs shadow-md whitespace-nowrap"
+        >
+          <span style={{ color: tooltip.seg.color }} className="font-semibold">{tooltip.seg.count}</span>
+          <span className="text-muted-foreground ml-1">{tooltip.seg.label}</span>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
@@ -215,17 +294,15 @@ export default function HomePage() {
               title="Open Jobs"
               value={metrics.openTasks}
               icon={Briefcase}
-              subtitle={metrics.criticalTasks > 0 ? `${metrics.criticalTasks} critical` : 'On track'}
-              status={metrics.criticalTasks > 0 ? 'red' : undefined}
+              subtitle={metrics.runningLateTasks > 0 ? `${metrics.runningLateTasks} running late` : 'On track'}
+              status={metrics.runningLateTasks > 0 ? 'red' : undefined}
               tooltip="Total open job tasks — tap to see critical items requiring immediate action"
               graphic={
-                <MiniBars
-                  heights={[
-                    metrics.openTasks,
-                    Math.max(0, metrics.openTasks - metrics.criticalTasks),
-                    metrics.criticalTasks,
-                  ]}
-                  className={metrics.criticalTasks > 0 ? 'text-critical' : 'text-primary'}
+                <MiniDonut
+                  unassigned={metrics.unassignedTasks}
+                  notStarted={metrics.notStartedTasks}
+                  inProgress={Math.max(0, metrics.openTasks - metrics.unassignedTasks - metrics.notStartedTasks - metrics.runningLateTasks)}
+                  runningLate={metrics.runningLateTasks}
                 />
               }
               onClick={() => navigate('/jobs')}

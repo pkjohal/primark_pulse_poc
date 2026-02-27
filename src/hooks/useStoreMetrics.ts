@@ -19,9 +19,9 @@ export function useStoreMetrics() {
         // Open jobs (anything not completed)
         supabase
           .from('jobs')
-          .select('id, priority')
+          .select('id, priority, status, created_at, started_at, sla_minutes')
           .eq('store_id', storeId!)
-          .neq('status', 'completed'),
+          .neq('status', 'complete'),
 
         // Checklists for compliance score
         supabase
@@ -47,8 +47,15 @@ export function useStoreMetrics() {
       const staffActive = staffResult.data?.filter(s => s.status === 'active').length ?? 0
 
       // Jobs
+      const now = Date.now()
       const openTasks = jobsResult.data?.length ?? 0
-      const criticalTasks = jobsResult.data?.filter(j => j.priority === 'CRITICAL').length ?? 0
+      const unassignedTasks = jobsResult.data?.filter(j => j.status === 'unassigned').length ?? 0
+      const notStartedTasks = jobsResult.data?.filter(j => j.status === 'pending').length ?? 0
+      const runningLateTasks = jobsResult.data?.filter(j => {
+        if (!j.started_at) return false
+        const deadline = new Date(j.started_at).getTime() + j.sla_minutes * 60 * 1000
+        return deadline < now
+      }).length ?? 0
 
       // Compliance: completed=100%, in-progress=50%, not-started=0% — averaged
       const checklists = checklistsResult.data ?? []
@@ -67,7 +74,7 @@ export function useStoreMetrics() {
 
       // Overall store status
       const storeStatus: StoreMetrics['storeStatus'] =
-        criticalTasks > 0 || complianceProgress < 50
+        runningLateTasks > 0 || complianceProgress < 50
           ? 'red'
           : openTasks > 8 || complianceProgress < 80 || stockAlerts > 0
           ? 'amber'
@@ -80,7 +87,9 @@ export function useStoreMetrics() {
         tillsOpen: 0,
         tillsTotal: 0,
         openTasks,
-        criticalTasks,
+        unassignedTasks,
+        notStartedTasks,
+        runningLateTasks,
         complianceProgress,
         stockAlerts,
       }
