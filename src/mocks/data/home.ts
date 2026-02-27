@@ -7,7 +7,9 @@ export const mockStoreMetrics: StoreMetrics = {
   tillsOpen: 8,
   tillsTotal: 14,
   openTasks: 12,
-  criticalTasks: 2,
+  unassignedTasks: 4,
+  notStartedTasks: 3,
+  runningLateTasks: 2,
   complianceProgress: 85,
   stockAlerts: 3,
 };

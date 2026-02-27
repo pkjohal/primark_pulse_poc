@@ -33,19 +33,15 @@ At the bottom, the queue summary shows every monitored area. Fitting Rooms is al
 
 Now let's look at Sarah's personal schedule. The schedule page shows her full working week at a glance. Today's shift has a progress bar — she's about a third of the way through — and the system knows her break time, her assigned zone, and her finish time without her having to check anything.
 
-The shift swap feature handles something that currently happens entirely through text messages and manager approval chains. If Sarah needs Friday off, she taps Offer for Swap and the shift immediately shows as available to anyone in the same store with the same role. A colleague who wants extra hours can accept it — one tap, both schedules update, the manager gets visibility. No back-and-forth, no missed messages, no informal arrangements that fall through the cracks.
+The shift swap feature handles something that currently happens entirely through text messages and manager approval chains. If Sarah needs Friday off, she taps Offer for Swap and the shift immediately shows as available to anyone in the same store with the same role. A colleague who wants extra hours can accept it — one tap, both schedules update, the manager gets visibility.
 
 ---
 
 ## Slide 3 — Staff Overview
 
-At the moment, if a manager wants to know where everyone is, they either walk the floor or call it out on the radio. With Pulse, the answer is right here.
+The staff overview page shows where the colleague is right now, whether they're active, on break, or absent, and what shift they're working. The colour-coded status dots mean you can scan the whole roster in a second.
 
-Each card shows where the colleague is right now, whether they're active, on break, or absent, and what shift they're working. The colour-coded status dots mean you can scan the whole roster in a second.
-
-The zone filters along the top are useful when you need to find coverage fast. Let's say the Fitting Rooms queue is building — Sarah can filter to see exactly who's already there and whether they need backup.
-
-And if she needs to move someone — acting on that AI suggestion from the home screen and pulling someone from the Stockroom to the Tills — she just taps their card, hits Reallocate, picks the new zone, and it's done. No form, no email to HR, no waiting. The change reflects immediately for everyone viewing the roster.
+And if she needs to move someone — acting on that AI suggestion from the home screen and pulling someone from the Stockroom to the Tills — she just taps their card, hits Reallocate, picks the new zone, and it's done.
 
 ---
 
@@ -55,21 +51,17 @@ Team communications in most stores run through WhatsApp or radio, which means cr
 
 Here, Sarah has sent a fire drill announcement and it sits at the top of the feed with an URGENT badge. But the key thing is the acknowledgment tracker — she can see in real time how many colleagues have confirmed they've seen it. That's accountability. If she sends a policy update that everyone needs to read before opening, she knows exactly who has and who hasn't — and can chase the ones who haven't.
 
-She can compose messages with proper targeting too. If the fitting room queue is getting critical, she can send a message directly to the Fitting Rooms zone, set it to require acknowledgment, and know it will reach the right people. Not the entire store on a group chat — the right zone, the right role, the right message.
-
----
-
 ## Slide 5 — Job Management
 
-This is the engine room of the floor operation. Every job in the store is here, from critical restocking tasks to routine VM work.
+Every job in the store is here. The list is sorted by priority — CRITICAL at the top, each one showing a *Why it Matters* reason, the zone, and a live SLA timer that turns amber then red as time runs out.
 
-At the top, Pulse has already done the prioritisation. It looks at job severity, how much SLA time is left, and the time of day — restocking zones matter more in the morning, customer-facing areas matter more at lunchtime — and it surfaces the three most urgent things right now. Both CRITICAL jobs are flashing red because they're already overdue or close to it.
+At the top, the Today's Top Jobs carousel has already done the triage — it scores jobs against priority, SLA urgency, and time of day, and surfaces the three that need attention right now.
 
-Let's look at this first one — 'Restock jeans wall, Slim Fit range.' You can see the AI badge, which means this job was flagged by the system, not a manager. The *Why it Matters* section explains it in plain English: size 10 and 12 are the most-asked-for sizes, and customers are leaving empty-handed. That's the context a floor colleague needs to understand why something is genuinely urgent.
+Let's open this first one — 'Restock jeans wall, Slim Fit range.' The detail sheet shows the full picture: why it matters, the success criteria so the colleague knows exactly when they're done, and a peer tip from Store 42. That institutional knowledge would normally walk out the door with whoever discovered it.
 
-And there's a peer tip — Store 42 figured out that moving size 14s to eye level makes them much easier for customers to find. That institutional knowledge would usually disappear the moment someone left. Here it travels with the job.
+Sarah can create a new job from scratch using the button at the top — she sets the title, priority, zone, and time to complete, adds a reason and success criteria, and assigns it directly to a colleague from the staff picker. One form, no radio.
 
-Now let's assign it. The system shows everyone available on the floor right now, with their skills and current zone. Sarah assigns it with one tap — job is assigned, the SLA clock is running, and the colleague sees it on their screen immediately. No radio, no shouting across the floor.
+For this existing job, she hits Assign — the system shows active staff with their skills and current zone. One tap, job is assigned, SLA clock running, colleague sees it immediately.
 
 ---
 

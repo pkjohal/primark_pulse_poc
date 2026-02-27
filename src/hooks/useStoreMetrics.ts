@@ -50,6 +50,7 @@ export function useStoreMetrics() {
       const now = Date.now()
       const openTasks = jobsResult.data?.length ?? 0
       const unassignedTasks = jobsResult.data?.filter(j => j.status === 'unassigned').length ?? 0
+      const notStartedTasks = jobsResult.data?.filter(j => j.status === 'pending').length ?? 0
       const runningLateTasks = jobsResult.data?.filter(j => {
         if (!j.started_at) return false
         const deadline = new Date(j.started_at).getTime() + j.sla_minutes * 60 * 1000
@@ -87,6 +88,7 @@ export function useStoreMetrics() {
         tillsTotal: 0,
         openTasks,
         unassignedTasks,
+        notStartedTasks,
         runningLateTasks,
         complianceProgress,
         stockAlerts,
