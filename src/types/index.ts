@@ -325,7 +325,8 @@ export interface StoreMetrics {
   tillsOpen: number;
   tillsTotal: number;
   openTasks: number;
-  criticalTasks: number;
+  unassignedTasks: number;
+  runningLateTasks: number;
   complianceProgress: number;
   stockAlerts: number;
 }

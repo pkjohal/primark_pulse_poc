@@ -47,6 +47,56 @@ function MiniBars({ heights, className }: { heights: number[]; className?: strin
   )
 }
 
+function MiniDonut({ unassigned, inProgress, runningLate }: { unassigned: number; inProgress: number; runningLate: number }) {
+  const r = 14
+  const C = 2 * Math.PI * r
+  const total = unassigned + inProgress + runningLate
+
+  if (total === 0) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor" className="text-muted" />
+      </svg>
+    )
+  }
+
+  const L1 = (unassigned / total) * C
+  const L2 = (inProgress / total) * C
+  const L3 = (runningLate / total) * C
+
+  // Each segment starts where the previous ended, using rotation to position
+  const a1 = -90
+  const a2 = a1 + (L1 / C) * 360
+  const a3 = a2 + (L2 / C) * 360
+
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor" className="text-muted" />
+      {L1 > 0 && (
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor"
+          className="text-muted-foreground"
+          strokeDasharray={`${L1} ${C}`} strokeDashoffset={0}
+          transform={`rotate(${a1} 18 18)`}
+        />
+      )}
+      {L2 > 0 && (
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor"
+          className="text-success"
+          strokeDasharray={`${L2} ${C}`} strokeDashoffset={0}
+          transform={`rotate(${a2} 18 18)`}
+        />
+      )}
+      {L3 > 0 && (
+        <circle cx="18" cy="18" r={r} strokeWidth="3" stroke="currentColor"
+          className="text-critical"
+          strokeDasharray={`${L3} ${C}`} strokeDashoffset={0}
+          transform={`rotate(${a3} 18 18)`}
+        />
+      )}
+    </svg>
+  )
+}
+
 // ── Staff shift banner ────────────────────────────────────────────────────────
 
 function StaffShiftBanner() {
@@ -215,17 +265,14 @@ export default function HomePage() {
               title="Open Jobs"
               value={metrics.openTasks}
               icon={Briefcase}
-              subtitle={metrics.criticalTasks > 0 ? `${metrics.criticalTasks} critical` : 'On track'}
-              status={metrics.criticalTasks > 0 ? 'red' : undefined}
+              subtitle={metrics.runningLateTasks > 0 ? `${metrics.runningLateTasks} running late` : 'On track'}
+              status={metrics.runningLateTasks > 0 ? 'red' : undefined}
               tooltip="Total open job tasks — tap to see critical items requiring immediate action"
               graphic={
-                <MiniBars
-                  heights={[
-                    metrics.openTasks,
-                    Math.max(0, metrics.openTasks - metrics.criticalTasks),
-                    metrics.criticalTasks,
-                  ]}
-                  className={metrics.criticalTasks > 0 ? 'text-critical' : 'text-primary'}
+                <MiniDonut
+                  unassigned={metrics.unassignedTasks}
+                  inProgress={Math.max(0, metrics.openTasks - metrics.unassignedTasks - metrics.runningLateTasks)}
+                  runningLate={metrics.runningLateTasks}
                 />
               }
               onClick={() => navigate('/jobs')}

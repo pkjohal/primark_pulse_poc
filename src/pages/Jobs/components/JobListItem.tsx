@@ -1,17 +1,26 @@
 import { useState, type CSSProperties } from 'react'
-import { MapPin, Clock, Plus, Check, Loader2 } from 'lucide-react'
+import { MapPin, Clock, Plus, Check, Loader2, UserPlus } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { formatSLATime } from '@/lib/utils'
 import { calculateRemainingTime } from '@/hooks/useJobs'
+import { useAuthStore } from '@/stores/authStore'
 import { PeerTipCard } from './PeerTipCard'
-import type { Job } from '@/types'
+import type { Job, JobPriority } from '@/types'
+
+const priorityConfig: Record<JobPriority, { bg: string; text: string; label: string }> = {
+  CRITICAL: { bg: 'bg-critical/10', text: 'text-critical',          label: 'Critical' },
+  HIGH:     { bg: 'bg-primary/10',  text: 'text-primary',           label: 'High'     },
+  MEDIUM:   { bg: 'bg-muted',       text: 'text-muted-foreground',  label: 'Medium'   },
+  LOW:      { bg: 'bg-muted',       text: 'text-muted-foreground/60', label: 'Low'    },
+}
 
 interface JobListItemProps {
   job: Job
   onClick?: () => void
   onQuickComplete?: (jobId: string) => void
   onAssignToMe?: (jobId: string) => void
+  onAssign?: (jobId: string) => void
   className?: string
   style?: CSSProperties
 }
@@ -21,6 +30,7 @@ export function JobListItem({
   onClick,
   onQuickComplete,
   onAssignToMe,
+  onAssign,
   className,
   style,
 }: JobListItemProps) {
@@ -28,8 +38,12 @@ export function JobListItem({
   const [isDoneLoading, setIsDoneLoading] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
 
+  const role = useAuthStore(s => s.user?.role)
+  const isManager = role === 'manager'
+
   const remainingMinutes = calculateRemainingTime(job)
-  const isOverdue = remainingMinutes <= 0 && job.status !== 'complete'
+  const isNotStarted = job.status === 'unassigned' || job.status === 'pending'
+  const isOverdue = remainingMinutes <= 0 && !isNotStarted && job.status !== 'complete'
   const isComplete = job.status === 'complete'
   const isEscalated = job.status === 'escalated'
 
@@ -83,11 +97,16 @@ export function JobListItem({
         )}>
           {job.title}
         </h3>
-        {isEscalated && (
-          <span className="text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">
-            Flagged
+        <div className="flex items-center gap-1 shrink-0">
+          <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', priorityConfig[job.priority].bg, priorityConfig[job.priority].text)}>
+            {priorityConfig[job.priority].label}
           </span>
-        )}
+          {isEscalated && (
+            <span className="text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">
+              Flagged
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Row 2: Why it matters (human-focused context) */}
@@ -103,11 +122,23 @@ export function JobListItem({
           <MapPin className="w-3.5 h-3.5" />
           {job.zone}
         </span>
-        <span className="text-muted-foreground/40">•</span>
-        <span className={cn('flex items-center gap-1', isOverdue && 'text-critical font-medium')}>
-          <Clock className="w-3.5 h-3.5" />
-          {isComplete ? 'Done' : isOverdue ? 'Overdue' : formatSLATime(remainingMinutes)}
-        </span>
+        {job.status !== 'unassigned' && (
+          <>
+            <span className="text-muted-foreground/40">•</span>
+            <span className={cn('flex items-center gap-1', isOverdue && 'text-critical font-medium', isNotStarted && 'text-primary', job.status === 'in-progress' && !isOverdue && 'text-success')}>
+              <Clock className="w-3.5 h-3.5" />
+              {isComplete
+                ? 'Done'
+                : isOverdue
+                  ? 'Running late'
+                  : job.status === 'in-progress'
+                    ? 'In progress'
+                    : job.status === 'pending'
+                      ? 'Not started'
+                      : formatSLATime(remainingMinutes)}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Row 4: Peer tip indicator */}
@@ -134,7 +165,21 @@ export function JobListItem({
         </div>
 
         {/* Right: Action button */}
-        {!isComplete && !isEscalated && (
+        {!isComplete && !isEscalated && isManager && !job.assigneeName && onAssign && (
+          <button
+            className={cn(
+              'flex items-center justify-center gap-1 px-3 py-1.5 rounded-full',
+              'bg-primary text-white text-xs font-medium',
+              'hover:bg-primary/90 active:scale-95 transition-all duration-150',
+              'min-w-[72px]'
+            )}
+            onClick={(e) => { e.stopPropagation(); onAssign(job.id) }}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            Assign
+          </button>
+        )}
+        {!isComplete && !isEscalated && !isManager && (
           job.assigneeName ? (
             <button
               className={cn(

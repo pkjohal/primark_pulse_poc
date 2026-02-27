@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export interface CurrentShift {
   id: string
+  staffMemberId: string | undefined
   name: string
   zone: string
   shiftStart: string
@@ -78,6 +79,7 @@ export function useCurrentShift() {
 
       return {
         id: staffMember?.id ?? user!.id,
+        staffMemberId: staffMember?.id,
         name: user!.name,
         zone: (shift?.zones as { name: string } | null)?.name ?? 'Unassigned',
         shiftStart: shift?.start_time ?? '--:--',

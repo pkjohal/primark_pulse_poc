@@ -6,7 +6,6 @@ import {
   SheetContent,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { useJobsCompletedToday } from '@/hooks/useJobs'
 import type { Job } from '@/types'
 
 interface JobCompletionSheetProps {
@@ -23,7 +22,6 @@ export function JobCompletionSheet({
   timeTaken,
 }: JobCompletionSheetProps) {
   const [showCheckmark, setShowCheckmark] = useState(false)
-  const jobsCompletedToday = useJobsCompletedToday()
 
   // Animate checkmark on open
   useEffect(() => {
@@ -72,14 +70,6 @@ export function JobCompletionSheet({
               </span>
             </p>
           </div>
-
-          {/* Divider */}
-          <div className="w-24 h-px bg-border mx-auto mb-6" />
-
-          {/* Today's count */}
-          <p className="text-sm text-muted-foreground mb-8">
-            Today: <span className="font-medium text-foreground">{jobsCompletedToday} jobs done</span>
-          </p>
 
           {/* Nice one button */}
           <Button

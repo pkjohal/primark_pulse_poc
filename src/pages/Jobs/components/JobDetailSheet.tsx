@@ -179,7 +179,7 @@ export function JobDetailSheet({
             </div>
 
             {/* SLA */}
-            {!isComplete && (
+            {!isComplete && job.status !== 'unassigned' && (
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Time remaining:</span>
