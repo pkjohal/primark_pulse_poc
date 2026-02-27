@@ -1,5 +1,6 @@
 import { Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import type { QueueStatus } from '@/types'
 
@@ -14,62 +15,41 @@ export function QueueCard({ queue, className }: QueueCardProps) {
   const isOverThreshold = queue.status === 'over-threshold'
 
   return (
-    <div
-      className={cn(
-        'bg-white border border-slate-200 rounded p-3 space-y-2',
-        className
-      )}
-    >
-      {/* Header with name and status */}
+    <Card className={cn('p-4 space-y-3', className)}>
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users
-            className={cn(
-              'w-4 h-4',
-              isOverThreshold ? 'text-[#D32F2F]' : 'text-slate-500'
-            )}
-          />
-          <h3 className="text-sm font-medium text-slate-900">{queue.name}</h3>
+          <Users className={cn('w-4 h-4', isOverThreshold ? 'text-critical' : 'text-muted-foreground')} />
+          <h3 className="text-sm font-medium text-foreground">{queue.name}</h3>
         </div>
         <span
           className={cn(
-            'text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm',
+            'text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full',
             isOverThreshold
-              ? 'bg-[#D32F2F]/10 text-[#D32F2F]'
-              : 'bg-[#388E3C]/10 text-[#388E3C]'
+              ? 'bg-critical/10 text-critical'
+              : 'bg-success/10 text-success'
           )}
         >
           {isOverThreshold ? 'Over Threshold' : 'Normal'}
         </span>
       </div>
 
-      {/* Current count - more compact */}
+      {/* Count */}
       <div className="flex items-baseline gap-1">
-        <span
-          className={cn(
-            'text-2xl font-semibold tabular-nums',
-            isOverThreshold ? 'text-[#D32F2F]' : 'text-slate-900'
-          )}
-        >
+        <span className={cn('text-2xl font-bold tabular-nums', isOverThreshold ? 'text-critical' : 'text-foreground')}>
           {queue.current}
         </span>
-        <span className="text-sm text-slate-500">/ {queue.max}</span>
+        <span className="text-sm text-muted-foreground">/ {queue.max}</span>
       </div>
 
-      {/* Progress bar - thinner, square caps */}
-      <div className="pt-3">
-        <Progress
-          value={percentage}
-          threshold={thresholdPercentage}
-          className="h-1.5"
-        />
-      </div>
+      {/* Progress bar */}
+      <Progress value={percentage} threshold={thresholdPercentage} className="h-1.5" />
 
-      {/* Footer stats */}
-      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Threshold: {queue.threshold}</span>
         <span className="tabular-nums">{Math.round(percentage)}% capacity</span>
       </div>
-    </div>
+    </Card>
   )
 }
