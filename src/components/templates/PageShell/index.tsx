@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ReactNode } from 'react'
 import { Header } from './Header'
 import { SidebarNav } from '@/components/custom/sidebar-nav'
@@ -16,20 +17,29 @@ export function PageShell({
   hideHeader = false,
   hideNav = false,
 }: PageShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <div className="min-h-screen-safe bg-background">
       {/* Top header — full width, fixed */}
-      {!hideHeader && <Header />}
+      {!hideHeader && (
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+      )}
 
-      {/* Left sidebar — fixed, below header */}
-      {!hideNav && <SidebarNav />}
+      {/* Left sidebar */}
+      {!hideNav && (
+        <SidebarNav
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
 
-      {/* Main content — offset right of sidebar, below header */}
+      {/* Main content */}
       <main
         className={cn(
           'min-h-screen-safe',
           !hideHeader && 'pt-16',
-          !hideNav && 'ml-64',
+          !hideNav && 'lg:ml-64',
           className
         )}
       >
