@@ -3,11 +3,9 @@ import { Camera, Keyboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useProductLookup } from '@/hooks/useProductLookup'
-import { useBasket } from '@/hooks/useBasket'
 import { BarcodeScanner } from '../Stock/components/BarcodeScanner'
 import { OmniSearch } from '../Stock/components/OmniSearch'
 import { ProductCard } from '../Stock/components/ProductCard'
-import { QuantityStepper } from '../Stock/components/QuantityStepper'
 import { StockIssueSheet } from '../Stock/components/StockIssueSheet'
 import type { Product } from '@/types'
 
@@ -17,33 +15,20 @@ export default function ScanStockPage() {
   const [scanMode, setScanMode] = useState<ScanMode>('camera')
   const [currentBarcode, setCurrentBarcode] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [quantity, setQuantity] = useState(1)
   const [issueSheetOpen, setIssueSheetOpen] = useState(false)
 
   const { data: lookupProduct, isLoading, error } = useProductLookup(currentBarcode)
-  const { addItem } = useBasket()
 
   const product = selectedProduct || lookupProduct
 
   const handleBarcodeSubmit = (barcode: string) => {
     setCurrentBarcode(barcode)
     setSelectedProduct(null)
-    setQuantity(1)
   }
 
   const handleProductSelect = (p: Product) => {
     setSelectedProduct(p)
     setCurrentBarcode(null)
-    setQuantity(1)
-  }
-
-  const handleAddToBasket = () => {
-    if (product) {
-      addItem(product, quantity)
-      setCurrentBarcode(null)
-      setSelectedProduct(null)
-      setQuantity(1)
-    }
   }
 
   return (
@@ -96,21 +81,6 @@ export default function ScanStockPage() {
           onReportIssue={product ? () => setIssueSheetOpen(true) : undefined}
         />
       </div>
-
-      {/* Add to Basket */}
-      {product && !isLoading && !error && (
-        <Card className="p-4 animate-fade-in-up">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground mb-1">Request Quantity</p>
-              <QuantityStepper value={quantity} onChange={setQuantity} />
-            </div>
-            <Button onClick={handleAddToBasket} className="h-12 px-6">
-              Add to Basket
-            </Button>
-          </div>
-        </Card>
-      )}
 
       {/* Stock Issue Sheet */}
       <StockIssueSheet

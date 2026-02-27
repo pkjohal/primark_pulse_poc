@@ -1,14 +1,14 @@
-# Architecture — Primark Pulse.ai
+# Architecture — Primark Pulse
 
-**Version:** 1.0
-**Date:** 2026-02-25
+**Version:** 2.0
+**Date:** 2026-02-27
 **Source:** Reverse-engineered from codebase
 
 ---
 
 ## 1. System Overview
 
-Primark Pulse.ai is a **single-page application (SPA)** delivered as a **Progressive Web App (PWA)**. It is a fully client-side React application with no real backend — all API calls are intercepted by Mock Service Worker (MSW) during the Proof of Concept phase, returning mock data. The app is designed to run in-store on Android mobile devices and be installable from the browser.
+Primark Pulse is a **single-page application (SPA)** delivered as a **Progressive Web App (PWA)**. It is a fully client-side React application that communicates directly with a **Supabase (PostgreSQL) backend** via the Supabase JS client. MSW (Mock Service Worker) is still initialised on startup but all custom hooks bypass it, querying Supabase directly. The app is designed to run in-store on Android mobile devices and be installable from the browser.
 
 ---
 
@@ -24,7 +24,8 @@ Primark Pulse.ai is a **single-page application (SPA)** delivered as a **Progres
 | Global client state | Zustand | 4.5.2 |
 | Styling | Tailwind CSS | 3.4.1 |
 | UI components | Radix UI (shadcn/ui pattern) | Various |
-| API mocking | Mock Service Worker (MSW) | 2.2.13 |
+| Backend / BaaS | Supabase (PostgreSQL) | 2.98.0 |
+| API mocking (legacy) | Mock Service Worker (MSW) | 2.2.13 |
 | PWA | vite-plugin-pwa (Workbox) | 0.19.7 |
 | Barcode scanning | @zxing/browser | 0.1.5 |
 | Offline storage | idb (IndexedDB) | 8.0.0 |
@@ -42,20 +43,22 @@ graph LR
   Staff["Store Staff"]
 
   App["Primark Pulse PWA\nReact SPA on Android Browser"]
-  MSW["Mock Service Worker\nIn-browser API intercept"]
+  Supabase["Supabase\nPostgreSQL + REST API"]
   LS["localStorage\nAuth + Basket state"]
   SW["Service Worker\nOffline cache + PWA install"]
+  MSW["MSW Worker\nInitialised but bypassed"]
 
   Manager --> App
   FloorLead --> App
   Staff --> App
-  App --> MSW
-  MSW --> App
+  App -->|"Direct table queries\nvia supabase-js"| Supabase
+  Supabase -->|"JSON rows"| App
   App --> LS
   App --> SW
+  App -->|"onUnhandledRequest: bypass"| MSW
 ```
 
-> Note: In production, MSW would be replaced by a real backend API. The service worker would continue to handle PWA install and offline caching.
+> Note: MSW is still started in `src/main.tsx` with `onUnhandledRequest: 'bypass'`. All hooks call Supabase directly; MSW no longer intercepts any requests.
 
 ---
 
@@ -69,72 +72,65 @@ graph TD
     Staff["StaffPage\n/staff"]
     Jobs["JobsPage\n/jobs"]
     Stock["StockPage\n/stock"]
+    ScanStock["ScanStockPage\n/scan-stock"]
     Compliance["CompliancePage\n/compliance"]
     Queues["QueuesPage\n/queues"]
     Team["TeamPage\n/team"]
     Schedule["SchedulePage\n/schedule"]
-    Insights["InsightsPage\n/insights"]
+    Insights["InsightsPage\n/insights (placeholder)"]
   end
 
   subgraph Shell["App Shell — src/components/templates/"]
     PageShell["PageShell\nHeader + BottomNav wrapper"]
-    Header["Header\nNotifications + Store name"]
-    BottomNav["BottomNav\nHome, Teams, Jobs, Stock, Compliance"]
-  end
-
-  subgraph Composed["Composed Components — src/components/composed/"]
-    AIBanner["AIBanner"]
-    AlertFeed["AlertFeed"]
-    MetricCard["MetricCard"]
-    StoreStatusCard["StoreStatusCard"]
-    QueueSummaryCard["QueueSummaryCard"]
   end
 
   subgraph Hooks["Custom Hooks — src/hooks/"]
     useStoreMetrics["useStoreMetrics"]
     useAlerts["useAlerts"]
     useAISuggestion["useAISuggestion"]
-    useTasks["useTasks"]
-    useJobs["useJobs"]
+    useJobs["useJobs / useCreateJob /\nuseUpdateJob / useEscalateJob"]
     useStaff["useStaff"]
-    useChecklist["useChecklist / useChecklists"]
+    useChecklists["useChecklists / useChecklistDetail /\nuseSubmitChecklistItem"]
     useProductLookup["useProductLookup"]
+    useProducts["useProducts"]
     useBasket["useBasket (Zustand)"]
-    useMessages["useMessages"]
-    useSchedule["useSchedule"]
+    useMessages["useMessages / useSendMessage /\nuseAcknowledgeMessage"]
+    useSchedule["useSchedule / useOfferShift /\nuseAcceptShift"]
     useQueues["useQueues"]
+    useCurrentShift["useCurrentShift"]
   end
 
   subgraph Stores["Global State — src/stores/"]
-    authStore["authStore\nZustand + persist"]
+    authStore["authStore\nZustand + persist\nuser id, name, store_id, role"]
     uiStore["uiStore\nZustand"]
     toastStore["toastStore\nZustand"]
-    basketStore["useBasket\nZustand + persist"]
   end
 
-  subgraph MockLayer["Mock Layer — src/mocks/"]
-    MSW["MSW Browser Worker"]
-    Handlers["handlers.ts\n~30 REST endpoints"]
-    MockData["Mock Data\nstaff, tasks, products,\ncompliance, queues, etc."]
+  subgraph DataLayer["Data Layer"]
+    SupabaseClient["src/lib/supabase.ts\nSupabase JS Client"]
+    SupabaseDB[("Supabase\nPostgreSQL")]
   end
 
-  Home --> Composed
+  subgraph MockLayer["Legacy Mock Layer — src/mocks/"]
+    MSWWorker["MSW Browser Worker\n(initialised, not intercepting)"]
+    Handlers["handlers.ts\n(bypassed by hooks)"]
+  end
+
   Home --> Hooks
   Staff --> Hooks
   Jobs --> Hooks
   Stock --> Hooks
+  ScanStock --> Hooks
   Compliance --> Hooks
   Queues --> Hooks
   Team --> Hooks
   Schedule --> Hooks
+  Login --> SupabaseClient
 
   Hooks --> Stores
-  Hooks --> MockLayer
-  MockLayer --> MockData
-  Handlers --> MockData
-
+  Hooks --> SupabaseClient
+  SupabaseClient --> SupabaseDB
   PageShell --> Shell
-  Home --> PageShell
 ```
 
 ---
@@ -145,26 +141,26 @@ graph TD
 |--------|----------|----------------|
 | App Router | `src/App.tsx` | Route definitions, protected route guard, lazy loading |
 | App Bootstrap | `src/main.tsx` | React Query setup, MSW initialisation, React DOM mount |
+| Supabase Client | `src/lib/supabase.ts` | Supabase JS client initialised with `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` |
 | PageShell | `src/components/templates/PageShell/` | Header + BottomNav layout wrapper for all authenticated pages |
-| BottomNav | `src/components/custom/bottom-nav.tsx` | Primary 5-item navigation bar (Home, Teams, Jobs, Stock, Compliance) |
-| Auth Store | `src/stores/authStore.ts` | Zustand store; persists email, name, role, token to localStorage |
-| UI Store | `src/stores/uiStore.ts` | Zustand store; active nav, notification count, toast, modal state |
+| Auth Store | `src/stores/authStore.ts` | Zustand store; persists `id`, `name`, `store`, `store_id`, `role` to localStorage |
+| UI Store | `src/stores/uiStore.ts` | Zustand store; active nav, notification count, modal state |
 | Basket Store | `src/hooks/useBasket.ts` | Zustand + persist; replenishment basket persisted to localStorage |
-| Type Definitions | `src/types/index.ts` | All shared TypeScript interfaces and enums (~467 lines) |
-| MSW Handlers | `src/mocks/handlers.ts` | ~30 MSW REST handlers covering all API endpoints |
-| Mock Data | `src/mocks/data/` | Per-module typed mock data files |
-| Home Page | `src/pages/Home/` | Live dashboard: metrics, AI banner, alerts, shift info |
-| Jobs Page | `src/pages/Jobs/` | Job list, SLA timers, assignment, escalation |
+| Type Definitions | `src/types/index.ts` | All shared TypeScript interfaces and enums |
+| DB Schema | `supabase/schema.sql` | Full PostgreSQL schema + seed data for Supabase |
+| Home Page | `src/pages/Home/` | Live dashboard: metrics, AI banner / shift banner, queue summary |
+| Jobs Page | `src/pages/Jobs/` | Job list, SLA timers, assignment, escalation, job creation |
 | Stock Page | `src/pages/Stock/` | Barcode scan/manual entry, product lookup, basket, issue reporting |
+| ScanStock Page | `src/pages/ScanStock/` | Dedicated rapid-scan view (no basket/product details layout) |
 | Compliance Page | `src/pages/Compliance/` | Enhanced checklists, policy search, incident reporting |
 | Staff Page | `src/pages/Staff/` | Roster, zone filters, reallocation, staff detail |
-| Team Page | `src/pages/Team/` | Enhanced messaging, acknowledgment tracking |
-| Schedule Page | `src/pages/Schedule/` | Weekly shift view, shift swap requests |
+| Team Page | `src/pages/Team/` | Messaging, acknowledgment tracking, compose |
+| Schedule Page | `src/pages/Schedule/` | Weekly shift view, shift swap offer/accept |
 | Queues Page | `src/pages/Queues/` | Queue monitoring, store pressure indicator |
 
 ---
 
-## 6. Data Flow — Barcode Stock Lookup
+## 6. Data Flow — Barcode Stock Lookup (Supabase)
 
 ```mermaid
 sequenceDiagram
@@ -173,69 +169,74 @@ sequenceDiagram
   participant UI as StockPage
   participant Scanner as BarcodeScanner
   participant Hook as useProductLookup
-  participant MSW as MSW Handler
+  participant SB as Supabase
   participant Cache as React Query Cache
 
   User->>UI: Opens Stock page
-  UI->>Scanner: Renders camera view (camera mode)
+  UI->>Scanner: Renders camera view
   User->>Scanner: Points camera at barcode
   Scanner->>UI: onScan(barcode) via @zxing/browser
   UI->>Hook: useProductLookup(barcode)
   Hook->>Cache: Check cache for ['product', barcode]
   alt Cache miss
-    Hook->>MSW: GET /api/products/:barcode
-    MSW-->>Hook: Product JSON or 404
+    Hook->>SB: SELECT * FROM products WHERE barcode = ?
+    SB-->>Hook: Product row
+    Hook->>SB: SELECT store_stock, nearby_stock, dc_stock FROM stock_levels
+    Hook->>SB: SELECT size, color, quantity, sku FROM stock_variants
+    Hook->>SB: SELECT zone, aisle, bay, shelf FROM stock_locations
+    SB-->>Hook: Combined product data
     Hook-->>Cache: Store result (5 min staleTime)
   end
-  Hook-->>UI: { data: Product, isLoading, error }
-  UI-->>User: ProductCard with stock levels displayed
+  Hook-->>UI: Product object with stock levels
+  UI-->>User: ProductCard rendered
 
   User->>UI: Adjusts quantity, taps "Add to Basket"
   UI->>Hook: useBasket.addItem(product, qty)
   Hook->>Hook: Merge or add to localStorage basket
-  UI-->>User: Basket count updates in header
+  UI-->>User: Basket count updates
 ```
 
 ---
 
-## 7. Data Flow — Checklist Completion
+## 7. Data Flow — Checklist Completion (Supabase)
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor User
   participant UI as CompliancePage
-  participant Hook as useChecklist
+  participant Hooks as useChecklists
+  participant SB as Supabase
   participant Cache as React Query Cache
-  participant MSW as MSW Handler
 
   User->>UI: Opens Compliance, views checklists
-  UI->>Hook: GET /api/compliance/checklists
-  MSW-->>UI: ChecklistSummary[] with status + progress
+  UI->>Hooks: useChecklists()
+  Hooks->>SB: SELECT from checklists + sections + items + responses
+  SB-->>Hooks: ChecklistSummary[] with progress counts
+  UI-->>User: Checklist list with progress bars
 
   User->>UI: Taps a checklist to open
-  UI->>MSW: POST /api/compliance/checklists/:id/start
-  MSW-->>UI: { status: 'in-progress', startedAt }
+  UI->>Hooks: useStartChecklist(id)
+  Hooks->>SB: UPDATE checklists SET status='in-progress'
+  SB-->>Hooks: OK
 
   loop For each checklist item
     User->>UI: Ticks item / enters value / captures photo
-    UI->>Hook: useToggleChecklistItem({ id, completed: true })
-    Hook->>Cache: Optimistic update (immediate UI change)
-    Hook->>MSW: PATCH /api/compliance/checklist/:id
+    UI->>Hooks: useSubmitChecklistItem({ itemId, response })
+    Hooks->>Cache: Optimistic update (immediate UI change)
+    Hooks->>SB: UPSERT checklist_responses
     alt Success
-      MSW-->>Hook: { completedAt, completedBy }
-      Hook->>Cache: Invalidate + refetch
+      SB-->>Hooks: OK
+      Hooks->>Cache: Invalidate + refetch
     else Failure
-      Hook->>Cache: Rollback to previous state
+      Hooks->>Cache: Rollback to previous state
     end
-    UI-->>User: Tick animation + timestamp shown
   end
 
-  User->>UI: Taps "Complete Checklist"
-  UI->>UI: Opens signature capture pad
-  User->>UI: Signs digitally
-  UI->>MSW: POST /api/compliance/checklists/:id/complete { signature }
-  MSW-->>UI: { status: 'completed', completedAt }
+  User->>UI: Taps "Complete Checklist" + signs
+  UI->>Hooks: useCompleteChecklist({ checklistId, signature })
+  Hooks->>SB: UPDATE checklists SET status='completed', signature_data=...
+  SB-->>Hooks: OK
   UI-->>User: Completion success sheet shown
 ```
 
@@ -243,23 +244,34 @@ sequenceDiagram
 
 ## 8. Authentication and Authorisation
 
-**Mechanism:** Custom email/password login with a mock JWT token. Any valid email and password is accepted in the PoC.
+**Mechanism:** Three-step PIN-based login using Supabase for store and user lookup. No Supabase Auth is used — identity is stored only in the Zustand auth store.
 
 **Flow:**
-1. User submits email + password on `/login`
-2. `LoginPage` calls `setAuth(user, token)` on the Zustand `authStore`
-3. Auth state (user, token, `isAuthenticated: true`) is persisted to `localStorage` under key `primark-pulse-auth`
-4. All routes except `/login` are wrapped in `ProtectedRoute` (`src/App.tsx:22`) which redirects to `/login` if `isAuthenticated` is false
+1. User visits `/login`; app fetches active stores from `locations` table via Supabase
+2. User selects their store; app fetches active users for that store from `users` table
+3. User selects their name; app shows a 4-digit PIN pad
+4. On 4th digit entered, app fetches `pin` from `users` for the selected user and compares in-browser
+5. On match, `setAuth({ id, name, store, store_id, role }, token)` is called on the Zustand `authStore`
+6. Auth state is persisted to `localStorage` under key `primark-pulse-auth` (version 1)
+7. All routes except `/login` are wrapped in `ProtectedRoute` (`src/App.tsx:23`) which redirects to `/login` if `isAuthenticated` is false
 
 **Roles defined:** `staff` | `floor-lead` | `manager`
 
-> Note: Role-based access control (RBAC) is declared in types but **not enforced** in routing or component logic in the PoC. All authenticated users have access to all pages.
+> Note: Role-based access control (RBAC) is declared in types but **not enforced** in routing or component logic. All authenticated users have access to all pages. PIN codes are stored as plain text — this is acceptable for PoC only.
 
 ---
 
 ## 9. Deployment and Infrastructure
 
 **Build:** `tsc -b && vite build` compiles TypeScript and bundles via Vite with tree-shaking and code splitting.
+
+**Environment variables required:**
+```
+VITE_SUPABASE_URL=<supabase project url>
+VITE_SUPABASE_ANON_KEY=<supabase anon key>
+```
+
+**Database:** `supabase/schema.sql` contains the full DDL and seed data. Run this in the Supabase SQL editor to initialise the database. All tables have Row Level Security **disabled** for the PoC.
 
 **PWA Configuration** (`vite.config.ts`):
 - `registerType: 'autoUpdate'` — service worker updates automatically in background
