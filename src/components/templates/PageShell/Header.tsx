@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, LogOut } from 'lucide-react'
+import { Bell, LogOut, Menu } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -9,9 +9,10 @@ import { useAuthStore } from '@/stores/authStore'
 
 interface HeaderProps {
   className?: string
+  onMenuClick?: () => void
 }
 
-export function Header({ className }: HeaderProps) {
+export function Header({ className, onMenuClick }: HeaderProps) {
   const { notificationCount } = useUIStore()
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const { user, logout } = useAuthStore()
@@ -35,12 +36,21 @@ export function Header({ className }: HeaderProps) {
           className
         )}
       >
-        {/* Left: PRIMARK branding */}
-        <div className="flex items-baseline gap-2">
-          <span className="font-primark uppercase text-primark-blue text-lg leading-none">
-            PRIMARK
-          </span>
-          <span className="text-sm text-mid-grey font-normal leading-none">Pulse</span>
+        {/* Left: hamburger (mobile) + PRIMARK branding */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-1.5 text-mid-grey hover:text-white transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-baseline gap-2">
+            <span className="font-primark uppercase text-primark-blue text-lg leading-none">
+              PRIMARK
+            </span>
+            <span className="text-sm text-mid-grey font-normal leading-none">Pulse</span>
+          </div>
         </div>
 
         {/* Right: Bell + user info */}
