@@ -186,7 +186,7 @@ export default function HomePage() {
       )}
 
       {/* ── Metrics row ── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {metricsLoading ? (
           <>
             <SkeletonCard />
@@ -273,7 +273,7 @@ export default function HomePage() {
     </div>
 
     {/* ── Quick Actions — sticky bottom bar ── */}
-    <div className="fixed bottom-0 left-64 right-0 z-40 bg-background border-t border-border px-4 py-3">
+    <div className="fixed bottom-0 left-0 lg:left-64 right-0 z-40 bg-background border-t border-border px-4 py-3">
       <QuickActions />
     </div>
     </>
