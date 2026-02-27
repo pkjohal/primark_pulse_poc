@@ -4,29 +4,41 @@ import { Card } from '@/components/ui/card'
 import { SkeletonCard } from '@/components/ui/skeleton'
 import { useStaff } from '@/hooks/useStaff'
 import { mockZones } from '@/mocks/data/staff'
-import { ZoneFilters } from './components/ZoneFilters'
 import { StaffCard } from './components/StaffCard'
 import { StaffDetailSheet } from './components/StaffDetailSheet'
 import { ReallocateDialog } from './components/ReallocateDialog'
+import { cn } from '@/lib/utils'
 import type { StaffMember, StaffStatus } from '@/types'
 
+type StatusFilter = 'all' | StaffStatus
+
+const statusFilters: { id: StatusFilter; label: string }[] = [
+  { id: 'all',    label: 'All'      },
+  { id: 'active', label: 'Active'   },
+  { id: 'break',  label: 'On Break' },
+  { id: 'absent', label: 'Absent'   },
+]
+
 export default function StaffPage() {
-  const [activeZone, setActiveZone] = useState('all')
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>('all')
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [reallocateOpen, setReallocateOpen] = useState(false)
 
   const { data: staff, isLoading } = useStaff()
 
-  // Filter staff by zone
-  const filteredStaff = staff
-    ? activeZone === 'all'
-      ? staff
-      : staff.filter((s) => {
-          const zone = mockZones.find((z) => z.id === activeZone)
-          return zone && s.zone === zone.name
-        })
-    : []
+  const statusOrder: Record<StaffStatus, number> = { active: 0, break: 1, absent: 2 }
+
+  // Filter staff by status, then sort: active (by zone) → break → absent
+  const filteredStaff = (staff ?? [])
+    .filter(s => activeStatus === 'all' || s.status === activeStatus)
+    .sort((a, b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+      if (statusDiff !== 0) return statusDiff
+      // Within active, sort by zone name
+      if (a.status === 'active') return a.zone.localeCompare(b.zone)
+      return 0
+    })
 
   // Count staff by status
   const statusCounts = staff?.reduce(
@@ -48,16 +60,16 @@ export default function StaffPage() {
   }
 
   const handleReallocated = () => {
-    setDetailOpen(true)
+    setDetailOpen(false)
   }
 
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <h1 className="text-xl font-semibold text-foreground">Staff Overview</h1>
+      <h1 className="text-xl font-semibold text-foreground animate-fade-in-up">Staff Overview</h1>
 
       {/* Summary Stats */}
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-4 text-sm animate-fade-in-up animation-delay-100">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-success" />
           <span className="text-muted-foreground">
@@ -78,12 +90,23 @@ export default function StaffPage() {
         </div>
       </div>
 
-      {/* Zone Filters */}
-      <ZoneFilters
-        zones={mockZones}
-        activeZone={activeZone}
-        onZoneChange={setActiveZone}
-      />
+      {/* Status Filters */}
+      <div className="flex gap-2">
+        {statusFilters.map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setActiveStatus(id)}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-full transition-colors shrink-0 min-h-[44px]',
+              activeStatus === id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Staff List */}
       {isLoading ? (
@@ -96,19 +119,24 @@ export default function StaffPage() {
         <Card className="p-6 text-center">
           <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground">
-            {activeZone === 'all'
+            {activeStatus === 'all'
               ? 'No staff members found'
-              : 'No staff in this zone'}
+              : `No staff currently ${activeStatus === 'break' ? 'on break' : activeStatus}`}
           </p>
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredStaff.map((staffMember) => (
-            <StaffCard
+          {filteredStaff.map((staffMember, index) => (
+            <div
               key={staffMember.id}
-              staff={staffMember}
-              onClick={() => handleStaffClick(staffMember)}
-            />
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <StaffCard
+                staff={staffMember}
+                onClick={() => handleStaffClick(staffMember)}
+              />
+            </div>
           ))}
         </div>
       )}

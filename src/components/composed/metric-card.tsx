@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ChevronRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 interface MetricCardProps {
   title: string
@@ -12,25 +12,31 @@ interface MetricCardProps {
   showProgress?: boolean
   progressValue?: number
   subtitle?: string
+  graphic?: ReactNode
+  tooltip?: string
   className?: string
   onClick?: () => void
 }
 
 const statusColors = {
   green: {
-    icon: 'text-success/15',
+    iconBg: 'bg-success/10',
+    iconText: 'text-success',
     subtitle: 'text-success',
   },
   amber: {
-    icon: 'text-warning/15',
+    iconBg: 'bg-warning/10',
+    iconText: 'text-warning',
     subtitle: 'text-warning',
   },
   red: {
-    icon: 'text-critical/15',
+    iconBg: 'bg-critical/10',
+    iconText: 'text-critical',
     subtitle: 'text-critical font-medium',
   },
   default: {
-    icon: 'text-primary/10',
+    iconBg: 'bg-primary/10',
+    iconText: 'text-primary',
     subtitle: 'text-muted-foreground',
   },
 }
@@ -43,6 +49,8 @@ export function MetricCard({
   showProgress = false,
   progressValue,
   subtitle,
+  graphic,
+  tooltip,
   className,
   onClick,
 }: MetricCardProps) {
@@ -51,40 +59,43 @@ export function MetricCard({
   return (
     <Card
       variant="interactive"
+      title={tooltip}
       className={cn(
-        'p-4 active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200 relative overflow-hidden',
+        'overflow-hidden active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-card-hover transition-all duration-200',
         className
       )}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
-      {/* Large faded background icon */}
-      <div className="absolute -bottom-3 -right-3 pointer-events-none">
-        <Icon className={cn('w-20 h-20', colors.icon)} strokeWidth={1.5} />
-      </div>
-
-      <div className="flex flex-col h-full relative z-10">
-        {/* Header with chevron */}
-        <div className="flex items-start justify-between mb-2">
-          <p className="text-sm font-medium text-muted-foreground">
-            {title}
-          </p>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      <div className="flex px-4">
+        {/* Left: icon + title + value + subtitle */}
+        <div className="flex flex-col justify-between flex-1 min-w-0 py-4">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className={cn('p-1.5 rounded-md shrink-0', colors.iconBg)}>
+              <Icon className={cn('w-3 h-3', colors.iconText)} />
+            </div>
+            <p className="text-[10px] font-medium text-muted-foreground flex-1 leading-tight truncate">
+              {title}
+            </p>
+          </div>
+          <div>
+            <p className="text-base font-bold leading-tight">{value}</p>
+            {subtitle && (
+              <p className={cn('text-[10px] mt-0.5 leading-tight', colors.subtitle)}>{subtitle}</p>
+            )}
+            {showProgress && progressValue !== undefined && !graphic && (
+              <div className="mt-1.5">
+                <Progress value={progressValue} className="h-1" />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Content - bigger text */}
-        <div className="flex-1">
-          <p className="text-2xl font-bold leading-tight">{value}</p>
-          {subtitle && (
-            <p className={cn('text-sm mt-1', colors.subtitle)}>{subtitle}</p>
-          )}
-        </div>
-
-        {/* Progress bar */}
-        {showProgress && progressValue !== undefined && (
-          <div className="mt-3">
-            <Progress value={progressValue} className="h-1.5" />
+        {/* Right: graphic — square, width = card height */}
+        {graphic && (
+          <div className="w-10 flex items-center justify-center shrink-0 bg-muted/20">
+            {graphic}
           </div>
         )}
       </div>

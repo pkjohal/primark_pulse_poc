@@ -28,7 +28,7 @@ export function ShiftInfoCard({
     return (
       <div
         className={cn(
-          'fixed bottom-nav-safe left-4 right-4 z-40',
+          'fixed bottom-4 left-[17rem] right-4 z-40',
           'rounded-2xl p-5 animate-pulse',
           'transition-all duration-300 ease-out',
           isScrolled
@@ -56,7 +56,7 @@ export function ShiftInfoCard({
       type="button"
       onClick={handleClick}
       className={cn(
-        'fixed bottom-nav-safe left-4 right-4 z-40',
+        'fixed bottom-4 left-[17rem] right-4 z-40',
         'rounded-2xl p-5 overflow-hidden',
         'text-white text-left',
         'transition-all duration-300 ease-out',

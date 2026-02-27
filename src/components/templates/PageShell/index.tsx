@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Header } from './Header'
-import { BottomNav } from '@/components/custom/bottom-nav'
+import { SidebarNav } from '@/components/custom/sidebar-nav'
 import { cn } from '@/lib/utils'
 
 interface PageShellProps {
@@ -17,24 +17,24 @@ export function PageShell({
   hideNav = false,
 }: PageShellProps) {
   return (
-    <div className="min-h-screen-safe bg-background flex flex-col">
-      {/* Header */}
+    <div className="min-h-screen-safe bg-background">
+      {/* Top header — full width, fixed */}
       {!hideHeader && <Header />}
 
-      {/* Main content area with safe padding */}
+      {/* Left sidebar — fixed, below header */}
+      {!hideNav && <SidebarNav />}
+
+      {/* Main content — offset right of sidebar, below header */}
       <main
         className={cn(
-          'flex-1 overflow-y-auto',
-          !hideHeader && 'pt-14', // Header height
-          !hideNav && 'pb-nav-safe', // Bottom nav height + safe area (uses CSS calc)
+          'min-h-screen-safe',
+          !hideHeader && 'pt-16',
+          !hideNav && 'ml-64',
           className
         )}
       >
         {children}
       </main>
-
-      {/* Bottom Navigation */}
-      {!hideNav && <BottomNav />}
     </div>
   )
 }

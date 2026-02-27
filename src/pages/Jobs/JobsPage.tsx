@@ -5,19 +5,35 @@ import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/skeleton'
 import { useJobs, useUpdateJob } from '@/hooks/useJobs'
 import { useStaff } from '@/hooks/useStaff'
+import { useCurrentShift } from '@/hooks/useCurrentShift'
 import { useAuthStore } from '@/stores/authStore'
 import { JobFilters } from './components/JobFilters'
 import { JobListItem } from './components/JobListItem'
 import { JobDetailSheet } from './components/JobDetailSheet'
 import { AssignJobDialog } from './components/AssignJobDialog'
 import { CreateJobSheet } from './components/CreateJobSheet'
-import { PriorityJobs } from './components/TodaysTopJobs'
 import { JobCompletionSheet } from './components/JobCompletionSheet'
 import { EscalationSheet } from './components/EscalationSheet'
 import type { Job, JobFilter } from '@/types'
 
+const MANAGER_FILTERS: { value: JobFilter; label: string }[] = [
+  { value: 'all',        label: 'All'        },
+  { value: 'my-jobs',    label: 'My Jobs'    },
+  { value: 'unassigned', label: 'Unassigned' },
+  { value: 'done',       label: 'Done'       },
+]
+
+const STAFF_FILTERS: { value: JobFilter; label: string }[] = [
+  { value: 'my-jobs',    label: 'My Jobs'    },
+  { value: 'unassigned', label: 'Unassigned' },
+  { value: 'my-done',    label: 'Done'       },
+]
+
 export default function JobsPage() {
-  const [filter, setFilter] = useState<JobFilter>('all')
+  const { user } = useAuthStore()
+  const isStaff = user?.role === 'staff'
+
+  const [filter, setFilter] = useState<JobFilter>(isStaff ? 'my-jobs' : 'all')
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [assignOpen, setAssignOpen] = useState(false)
@@ -27,22 +43,20 @@ export default function JobsPage() {
   const [completedJob, setCompletedJob] = useState<Job | null>(null)
   const [completionTime, setCompletionTime] = useState(0)
 
-  // Animation state for filter transitions
   const [listKey, setListKey] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   const { data: jobs, isLoading } = useJobs(filter)
   const { data: staff } = useStaff()
+  const { data: currentShift } = useCurrentShift()
   const updateJob = useUpdateJob()
-  const { user } = useAuthStore()
 
-  // Handle filter change with animation
+  // Staff member ID for the current user (needed for assignment)
+  const myStaffMemberId = currentShift?.id
+
   const handleFilterChange = (newFilter: JobFilter) => {
     if (newFilter === filter) return
-
     setIsTransitioning(true)
-
-    // After fade out, update filter and trigger stagger in
     setTimeout(() => {
       setFilter(newFilter)
       setListKey(prev => prev + 1)
@@ -50,9 +64,11 @@ export default function JobsPage() {
     }, 150)
   }
 
-  // Sort jobs: CRITICAL first, then by SLA urgency
+  // Sort: critical first → priority → SLA urgency; completed at bottom
   const sortedJobs = jobs
     ? [...jobs].sort((a, b) => {
+        if (a.status === 'complete' && b.status !== 'complete') return 1
+        if (b.status === 'complete' && a.status !== 'complete') return -1
         const priorityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
         const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
         if (priorityDiff !== 0) return priorityDiff
@@ -76,7 +92,7 @@ export default function JobsPage() {
   }
 
   const handleAssigned = () => {
-    setDetailOpen(true)
+    // AssignJobDialog already closes itself; keep detail closed
   }
 
   const handleQuickComplete = (jobId: string) => {
@@ -84,7 +100,6 @@ export default function JobsPage() {
     if (job) {
       const startTime = job.startedAt ? new Date(job.startedAt) : new Date(job.createdAt)
       const timeTaken = Math.round((Date.now() - startTime.getTime()) / (60 * 1000))
-
       updateJob.mutate(
         { id: jobId, status: 'complete', completedAt: new Date().toISOString(), completedIn: timeTaken },
         {
@@ -101,19 +116,9 @@ export default function JobsPage() {
   const handleAssignToMe = (jobId: string) => {
     updateJob.mutate({
       id: jobId,
-      assignee: 'current-user',
+      assignee: myStaffMemberId ?? user?.id ?? null,
       assigneeName: user?.name?.split(' ')[0] || 'You',
       status: 'pending',
-    })
-  }
-
-  const handleStartJob = (jobId: string) => {
-    updateJob.mutate({
-      id: jobId,
-      status: 'in-progress',
-      startedAt: new Date().toISOString(),
-      assignee: 'current-user',
-      assigneeName: user?.name?.split(' ')[0] || 'You',
     })
   }
 
@@ -123,29 +128,29 @@ export default function JobsPage() {
     setCompletionOpen(true)
   }
 
-  const getAnimationDelay = (index: number) => {
-    const baseDelay = 50
-    const stagger = 50
-    const maxDelay = 400
-    return Math.min(baseDelay + index * stagger, maxDelay)
-  }
+  const getAnimationDelay = (index: number) =>
+    Math.min(50 + index * 50, 400)
 
   return (
     <div className="p-4 space-y-4">
-      {/* Priority Jobs */}
-      <PriorityJobs
-        onJobClick={handleJobClick}
-        onStartJob={handleStartJob}
-        className="animate-fade-in-up"
-      />
-
-      {/* Filters - centered */}
-      <div className="flex justify-center animate-fade-in-scale">
-        <JobFilters
-          activeFilter={filter}
-          onFilterChange={handleFilterChange}
-        />
+      {/* Header */}
+      <div className="flex items-center justify-between animate-fade-in-up">
+        <h1 className="text-xl font-semibold text-foreground">Jobs</h1>
+        {!isStaff && (
+          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+            <Plus className="w-4 h-4" />
+            New Job
+          </Button>
+        )}
       </div>
+
+      {/* Filters */}
+      <JobFilters
+        activeFilter={filter}
+        onFilterChange={handleFilterChange}
+        filters={isStaff ? STAFF_FILTERS : MANAGER_FILTERS}
+        className="animate-fade-in-scale"
+      />
 
       {/* Job List */}
       {isLoading ? (
@@ -162,7 +167,9 @@ export default function JobsPage() {
               ? 'No unassigned jobs'
               : filter === 'my-jobs'
                 ? 'No jobs assigned to you'
-                : 'No jobs found'}
+                : filter === 'done' || filter === 'my-done'
+                  ? 'No completed jobs yet'
+                  : 'No jobs found'}
           </p>
         </Card>
       ) : (
@@ -204,10 +211,7 @@ export default function JobsPage() {
       />
 
       {/* Create Job Sheet */}
-      <CreateJobSheet
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
+      <CreateJobSheet open={createOpen} onOpenChange={setCreateOpen} />
 
       {/* Escalation Sheet */}
       <EscalationSheet
@@ -223,14 +227,6 @@ export default function JobsPage() {
         onOpenChange={setCompletionOpen}
         timeTaken={completionTime}
       />
-
-      {/* FAB - Create Job Button with press animation */}
-      <Button
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full shadow-lg z-40 active:scale-95 transition-transform duration-150"
-        onClick={() => setCreateOpen(true)}
-      >
-        <Plus className="w-6 h-6" />
-      </Button>
     </div>
   )
 }

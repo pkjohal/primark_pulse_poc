@@ -1,193 +1,204 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { ScheduledShift, AvailableShift } from '@/types'
 
-// Fetch user's schedule
-async function fetchSchedule(): Promise<ScheduledShift[]> {
-  const res = await fetch('/api/schedule')
-  if (!res.ok) {
-    throw new Error('Failed to fetch schedule')
+function rowToScheduledShift(row: Record<string, unknown>): ScheduledShift {
+  const zone = row.zones as { name: string } | null
+  return {
+    id: row.id as string,
+    date: row.date as string,
+    startTime: row.start_time as string,
+    endTime: row.end_time as string,
+    breakStart: row.break_start as string | undefined,
+    breakDuration: row.break_duration_mins as number | undefined,
+    zone: zone?.name ?? '',
+    role: row.role as string,
+    status: row.status as ScheduledShift['status'],
   }
-  return res.json()
 }
 
-// Fetch available shifts for swap
-async function fetchAvailableShifts(): Promise<AvailableShift[]> {
-  const res = await fetch('/api/schedule/available')
-  if (!res.ok) {
-    throw new Error('Failed to fetch available shifts')
+function rowToAvailableShift(row: Record<string, unknown>): AvailableShift {
+  const zone = row.zones as { name: string } | null
+  const offerer = row.users as { id: string; name: string } | null
+  return {
+    id: row.id as string,
+    date: row.date as string,
+    startTime: row.start_time as string,
+    endTime: row.end_time as string,
+    zone: zone?.name ?? '',
+    role: row.role as string,
+    status: 'available',
+    offeredBy: offerer?.id ?? '',
+    offeredByName: offerer?.name ?? 'Unknown',
   }
-  return res.json()
 }
+
+const SHIFT_SELECT = '*, zones(name)'
 
 export function useSchedule() {
+  const user = useAuthStore(s => s.user)
+
   return useQuery({
-    queryKey: ['schedule'],
-    queryFn: fetchSchedule,
+    queryKey: ['schedule', user?.id],
+    queryFn: async (): Promise<ScheduledShift[]> => {
+      const today = new Date().toISOString().split('T')[0]
+      const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('shifts')
+        .select(SHIFT_SELECT)
+        .eq('user_id', user!.id)
+        .gte('date', today)
+        .lte('date', weekEnd)
+        .neq('status', 'available')
+        .order('date')
+      if (error) throw error
+      return (data ?? []).map(row => rowToScheduledShift(row as Record<string, unknown>))
+    },
+    enabled: !!user?.id,
   })
 }
 
 export function useAvailableShifts() {
-  return useQuery({
-    queryKey: ['schedule', 'available'],
-    queryFn: fetchAvailableShifts,
-  })
-}
+  const user = useAuthStore(s => s.user)
 
-// Offer shift for swap
-async function offerShift(shiftId: string): Promise<void> {
-  const res = await fetch(`/api/schedule/offer/${shiftId}`, {
-    method: 'POST',
+  return useQuery({
+    queryKey: ['schedule', 'available', user?.store_id],
+    queryFn: async (): Promise<AvailableShift[]> => {
+      const today = new Date().toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('shifts')
+        .select(`${SHIFT_SELECT}, users!shifts_offered_by_fkey(id, name)`)
+        .eq('store_id', user!.store_id)
+        .eq('status', 'available')
+        .gte('date', today)
+        .neq('user_id', user!.id)
+        .order('date')
+      if (error) throw error
+      return (data ?? []).map(row => rowToAvailableShift(row as Record<string, unknown>))
+    },
+    enabled: !!user?.id,
   })
-  if (!res.ok) {
-    throw new Error('Failed to offer shift')
-  }
 }
 
 export function useOfferShift() {
   const queryClient = useQueryClient()
+  const user = useAuthStore(s => s.user)
 
   return useMutation({
-    mutationFn: offerShift,
+    mutationFn: async (shiftId: string) => {
+      const { error } = await supabase
+        .from('shifts')
+        .update({ status: 'available', offered_by: user!.id })
+        .eq('id', shiftId)
+      if (error) throw error
+    },
     onMutate: async (shiftId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['schedule'] })
-
-      // Snapshot current data
-      const previousSchedule = queryClient.getQueryData<ScheduledShift[]>(['schedule'])
-
-      // Optimistically update to pending-swap
-      queryClient.setQueryData<ScheduledShift[]>(['schedule'], (old) => {
-        if (!old) return old
-        return old.map((shift) =>
-          shift.id === shiftId ? { ...shift, status: 'pending-swap' as const } : shift
-        )
-      })
-
+      await queryClient.cancelQueries({ queryKey: ['schedule', user?.id] })
+      const previousSchedule = queryClient.getQueryData<ScheduledShift[]>(['schedule', user?.id])
+      queryClient.setQueryData<ScheduledShift[]>(['schedule', user?.id], (old) =>
+        old?.map(s => s.id === shiftId ? { ...s, status: 'pending-swap' as const } : s)
+      )
       return { previousSchedule }
     },
     onError: (_err, _shiftId, context) => {
-      // Rollback on error
-      if (context?.previousSchedule) {
-        queryClient.setQueryData(['schedule'], context.previousSchedule)
-      }
+      if (context?.previousSchedule) queryClient.setQueryData(['schedule', user?.id], context.previousSchedule)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule'] })
+      queryClient.invalidateQueries({ queryKey: ['schedule', user?.id] })
     },
   })
-}
-
-// Cancel swap offer
-async function cancelOffer(shiftId: string): Promise<void> {
-  const res = await fetch(`/api/schedule/offer/${shiftId}`, {
-    method: 'DELETE',
-  })
-  if (!res.ok) {
-    throw new Error('Failed to cancel offer')
-  }
 }
 
 export function useCancelOffer() {
   const queryClient = useQueryClient()
+  const user = useAuthStore(s => s.user)
 
   return useMutation({
-    mutationFn: cancelOffer,
+    mutationFn: async (shiftId: string) => {
+      const { error } = await supabase
+        .from('shifts')
+        .update({ status: 'confirmed', offered_by: null })
+        .eq('id', shiftId)
+      if (error) throw error
+    },
     onMutate: async (shiftId) => {
-      await queryClient.cancelQueries({ queryKey: ['schedule'] })
-
-      const previousSchedule = queryClient.getQueryData<ScheduledShift[]>(['schedule'])
-
-      // Optimistically update back to confirmed
-      queryClient.setQueryData<ScheduledShift[]>(['schedule'], (old) => {
-        if (!old) return old
-        return old.map((shift) =>
-          shift.id === shiftId ? { ...shift, status: 'confirmed' as const } : shift
-        )
-      })
-
+      await queryClient.cancelQueries({ queryKey: ['schedule', user?.id] })
+      const previousSchedule = queryClient.getQueryData<ScheduledShift[]>(['schedule', user?.id])
+      queryClient.setQueryData<ScheduledShift[]>(['schedule', user?.id], (old) =>
+        old?.map(s => s.id === shiftId ? { ...s, status: 'confirmed' as const } : s)
+      )
       return { previousSchedule }
     },
     onError: (_err, _shiftId, context) => {
-      if (context?.previousSchedule) {
-        queryClient.setQueryData(['schedule'], context.previousSchedule)
-      }
+      if (context?.previousSchedule) queryClient.setQueryData(['schedule', user?.id], context.previousSchedule)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['schedule'] })
+      queryClient.invalidateQueries({ queryKey: ['schedule', user?.id] })
     },
   })
-}
-
-// Accept available shift
-async function acceptShift(shiftId: string): Promise<void> {
-  const res = await fetch(`/api/schedule/accept/${shiftId}`, {
-    method: 'POST',
-  })
-  if (!res.ok) {
-    throw new Error('Failed to accept shift')
-  }
 }
 
 export function useAcceptShift() {
   const queryClient = useQueryClient()
+  const user = useAuthStore(s => s.user)
 
   return useMutation({
-    mutationFn: acceptShift,
+    mutationFn: async (shiftId: string) => {
+      const { error } = await supabase
+        .from('shifts')
+        .update({ user_id: user!.id, status: 'confirmed', offered_by: null })
+        .eq('id', shiftId)
+      if (error) throw error
+    },
     onSuccess: () => {
-      // Invalidate both queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['schedule'] })
+      queryClient.invalidateQueries({ queryKey: ['schedule', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['schedule', 'available', user?.store_id] })
     },
   })
 }
 
-// Helper: Get today's shift from schedule
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 export function getTodayShift(schedule: ScheduledShift[] | undefined): ScheduledShift | null {
   if (!schedule) return null
   const today = new Date().toISOString().split('T')[0]
-  return schedule.find((s) => s.date === today) ?? null
+  return schedule.find(s => s.date === today) ?? null
 }
 
-// Helper: Parse time string (HH:mm) to minutes from midnight
 export function parseTimeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
+  const [h, m] = time.split(':').map(Number)
+  return h * 60 + m
 }
 
-// Helper: Get current minutes from midnight
 export function getCurrentMinutes(): number {
   const now = new Date()
   return now.getHours() * 60 + now.getMinutes()
 }
 
-// Helper: Format minutes to display string
 export function formatRemainingTime(minutes: number): string {
   if (minutes <= 0) return 'Shift ended'
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  if (hours === 0) return `${mins}m`
-  if (mins === 0) return `${hours}h`
-  return `${hours}h ${mins}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
 }
 
-// Helper: Check if currently on break
 export function isOnBreak(shift: ScheduledShift): boolean {
   if (!shift.breakStart || !shift.breakDuration) return false
   const now = getCurrentMinutes()
-  const breakStart = parseTimeToMinutes(shift.breakStart)
-  const breakEnd = breakStart + shift.breakDuration
-  return now >= breakStart && now < breakEnd
+  const start = parseTimeToMinutes(shift.breakStart)
+  return now >= start && now < start + shift.breakDuration
 }
 
-// Helper: Calculate shift progress percentage
 export function getShiftProgress(shift: ScheduledShift): number {
   const now = getCurrentMinutes()
   const start = parseTimeToMinutes(shift.startTime)
   const end = parseTimeToMinutes(shift.endTime)
-
   if (now < start) return 0
   if (now >= end) return 100
-
-  const elapsed = now - start
-  const total = end - start
-  return Math.round((elapsed / total) * 100)
+  return Math.round(((now - start) / (end - start)) * 100)
 }

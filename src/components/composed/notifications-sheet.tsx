@@ -250,7 +250,7 @@ export function NotificationsSheet({ open, onOpenChange }: NotificationsSheetPro
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="left"
+        side="right"
         className="w-full sm:w-96 p-0"
         closeClassName="text-white hover:text-white/80"
         onSwipeClose={() => onOpenChange(false)}

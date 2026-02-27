@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { ChecklistItem, ChecklistCategory } from '@/types'
 
-// Helper to group items by category
 function groupByCategory(items: ChecklistItem[]): ChecklistCategory[] {
   const grouped = items.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = []
-    }
+    if (!acc[item.category]) acc[item.category] = []
     acc[item.category].push(item)
     return acc
   }, {} as Record<string, ChecklistItem[]>)
@@ -19,76 +18,109 @@ function groupByCategory(items: ChecklistItem[]): ChecklistCategory[] {
   }))
 }
 
-// Fetch checklist items grouped by category
-async function fetchChecklist(): Promise<ChecklistCategory[]> {
-  const res = await fetch('/api/compliance/checklist')
-  if (!res.ok) throw new Error('Failed to fetch checklist')
-  const items: ChecklistItem[] = await res.json()
-  return groupByCategory(items)
-}
-
 export function useChecklist() {
+  const storeId = useAuthStore(s => s.user?.store_id)
+
   return useQuery({
-    queryKey: ['checklist'],
-    queryFn: fetchChecklist,
+    queryKey: ['checklist', storeId],
+    queryFn: async (): Promise<ChecklistCategory[]> => {
+      // Get today's closing checklist items (legacy simple view)
+      const { data: checklist } = await supabase
+        .from('checklists')
+        .select('id')
+        .eq('store_id', storeId!)
+        .eq('type', 'closing')
+        .maybeSingle()
+
+      if (!checklist) return []
+
+      const { data: sections } = await supabase
+        .from('checklist_sections')
+        .select('id, name')
+        .eq('checklist_id', checklist.id)
+
+      if (!sections?.length) return []
+
+      const sectionIds = sections.map(s => s.id)
+
+      const { data: items, error } = await supabase
+        .from('checklist_items')
+        .select('*, checklist_responses(value_bool, completed_at, user_id)')
+        .in('section_id', sectionIds)
+        .order('sort_order')
+      if (error) throw error
+
+      const mapped: ChecklistItem[] = (items ?? []).map(row => {
+        const resp = (row.checklist_responses as Array<{ value_bool: boolean | null; completed_at: string; user_id: string }> | null)?.[0]
+        return {
+          id: row.id as string,
+          category: row.category as string,
+          item: row.item as string,
+          completed: resp?.value_bool === true,
+          completedAt: resp?.completed_at ?? null,
+          completedBy: null,
+          order: row.sort_order as number,
+        }
+      })
+
+      return groupByCategory(mapped)
+    },
+    enabled: !!storeId,
   })
 }
 
-// Toggle checklist item completion
 export function useToggleChecklistItem() {
   const queryClient = useQueryClient()
+  const storeId = useAuthStore(s => s.user?.store_id)
+  const userId = useAuthStore(s => s.user?.id)
 
   return useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
-      const res = await fetch(`/api/compliance/checklist/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed, completedBy: 'Current User' }),
-      })
-      if (!res.ok) throw new Error('Failed to update checklist item')
-      return res.json()
+      if (completed) {
+        const { error } = await supabase
+          .from('checklist_responses')
+          .upsert({
+            id: `resp-${id}-${userId}`,
+            item_id: id,
+            user_id: userId,
+            value_bool: true,
+            completed_at: new Date().toISOString(),
+          })
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('checklist_responses')
+          .delete()
+          .eq('item_id', id)
+          .eq('user_id', userId!)
+        if (error) throw error
+      }
     },
     onMutate: async ({ id, completed }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['checklist'] })
-
-      // Snapshot previous value
-      const previous = queryClient.getQueryData<ChecklistCategory[]>(['checklist'])
-
-      // Optimistically update the cache
+      await queryClient.cancelQueries({ queryKey: ['checklist', storeId] })
+      const previous = queryClient.getQueryData<ChecklistCategory[]>(['checklist', storeId])
       if (previous) {
         const updated = previous.map(category => ({
           ...category,
           items: category.items.map(item =>
             item.id === id
-              ? {
-                  ...item,
-                  completed,
-                  completedAt: completed ? new Date().toISOString() : null,
-                  completedBy: completed ? 'Current User' : null,
-                }
+              ? { ...item, completed, completedAt: completed ? new Date().toISOString() : null, completedBy: completed ? 'Current User' : null }
               : item
           ),
           completedCount: category.items.reduce(
-            (count, item) =>
-              count + (item.id === id ? (completed ? 1 : 0) : item.completed ? 1 : 0),
+            (count, item) => count + (item.id === id ? (completed ? 1 : 0) : item.completed ? 1 : 0),
             0
           ),
         }))
-        queryClient.setQueryData(['checklist'], updated)
+        queryClient.setQueryData(['checklist', storeId], updated)
       }
-
       return { previous }
     },
     onError: (_err, _vars, context) => {
-      // Rollback on error
-      if (context?.previous) {
-        queryClient.setQueryData(['checklist'], context.previous)
-      }
+      if (context?.previous) queryClient.setQueryData(['checklist', storeId], context.previous)
     },
     onSettled: () => {
-      // Refetch after mutation
-      queryClient.invalidateQueries({ queryKey: ['checklist'] })
+      queryClient.invalidateQueries({ queryKey: ['checklist', storeId] })
     },
   })
 }

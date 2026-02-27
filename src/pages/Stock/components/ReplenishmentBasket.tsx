@@ -18,7 +18,7 @@ function BasketItemRow({ item, onRemove }: { item: BasketItem; onRemove: () => v
           {item.product.name}
         </p>
         <p className="text-xs text-muted-foreground">
-          {item.product.size} {item.product.color && `• ${item.product.color}`}
+          {item.product.size} {item.product.category && `• ${item.product.category}`}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">

@@ -131,18 +131,18 @@ interface DayOffCardProps {
 export function DayOffCard({ date, className }: DayOffCardProps) {
   const dateObj = new Date(date + 'T00:00:00')
   const formattedDate = dateObj.toLocaleDateString('en-GB', {
-    weekday: 'long',
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
   })
 
   return (
-    <Card className={cn('p-4 bg-muted/30', className)}>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{formattedDate}</p>
-        <Palmtree className="w-5 h-5 text-muted-foreground/50" />
+    <div className={cn('flex items-center justify-between px-1 py-2', className)}>
+      <p className="text-sm text-muted-foreground/60">{formattedDate}</p>
+      <div className="flex items-center gap-1.5">
+        <Palmtree className="w-3.5 h-3.5 text-muted-foreground/40" />
+        <span className="text-xs text-muted-foreground/40">Day off</span>
       </div>
-      <p className="text-sm text-muted-foreground mt-2">Day Off</p>
-    </Card>
+    </div>
   )
 }

@@ -1,110 +1,64 @@
 import { useNavigate } from 'react-router-dom'
-import { Scan, Package, Plus, Calendar, ChevronRight } from 'lucide-react'
+import { Scan, Package, Plus, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { PulseRings } from '@/components/decorative'
+import { useCurrentShift } from '@/hooks/useCurrentShift'
+import type { LucideIcon } from 'lucide-react'
+
+interface Action {
+  key: string
+  icon: LucideIcon
+  label: string
+  delay: string
+}
+
+const actions: Action[] = [
+  { key: 'schedule', icon: Calendar, label: 'My Schedule',  delay: 'animation-delay-150' },
+  { key: 'scan',     icon: Scan,     label: 'Scan Item',    delay: 'animation-delay-200' },
+  { key: 'lookup',   icon: Package,  label: 'Store Lookup', delay: 'animation-delay-250' },
+  { key: 'issue',    icon: Plus,     label: 'Log Issue',    delay: 'animation-delay-300' },
+]
 
 export function QuickActions() {
   const navigate = useNavigate()
+  const { data: shift } = useCurrentShift()
 
-  const handleScanItem = () => {
-    navigate('/stock', { state: { openScanner: true } })
-  }
-
-  const handleStockLookup = () => {
-    navigate('/stock')
-  }
-
-  const handleLogIssue = () => {
-    // Future: open incident form
-    // For now, this is a placeholder
-    console.log('Log issue - coming soon')
-  }
-
-  const handleSchedule = () => {
-    navigate('/schedule')
+  const handleAction = (key: string) => {
+    if (key === 'scan')     navigate('/scan-stock')
+    if (key === 'lookup')   navigate('/stock')
+    if (key === 'schedule') navigate('/schedule')
+    // Log Issue: placeholder — no navigation yet
   }
 
   return (
-    <div className="space-y-2.5 mb-4">
-      {/* Top row - Scan, Stock Lookup, Log Issue */}
-      <div className="grid grid-cols-[1.5fr_1fr_1fr] gap-2.5">
-        {/* Scan Item - Primary action */}
+    <div className="grid grid-cols-4 gap-2">
+      {actions.map(({ key, icon: Icon, label, delay }) => (
         <button
-          onClick={handleScanItem}
+          key={key}
+          onClick={() => handleAction(key)}
           className={cn(
-            'relative flex flex-col items-center justify-center gap-2',
-            'py-5 px-3 rounded-2xl overflow-hidden',
-            'bg-primary text-white',
-            'shadow-[0_4px_12px_rgba(0,175,219,0.3)]',
-            'active:scale-[0.97] hover:shadow-[0_6px_16px_rgba(0,175,219,0.4)] transition-all duration-200',
-            'min-h-touch',
-            'animate-fade-in-up animation-delay-150'
-          )}
-        >
-          {/* Decorative pulse rings */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <PulseRings className="w-28 h-28 text-white/25" />
-          </div>
-
-          <Scan className="w-6 h-6 relative z-10" />
-          <span className="text-sm font-semibold relative z-10">Scan Item</span>
-        </button>
-
-        {/* Stock Lookup - Secondary action */}
-        <button
-          onClick={handleStockLookup}
-          className={cn(
-            'flex flex-col items-center justify-center gap-1.5',
-            'py-4 px-2 rounded-2xl',
+            'flex flex-row items-center justify-start gap-3',
+            'py-3 px-3 rounded-xl',
             'bg-white text-foreground',
+            'border border-border',
             'shadow-card hover:shadow-card-hover hover:-translate-y-0.5',
             'active:scale-[0.97] transition-all duration-200',
-            'min-h-touch',
-            'animate-fade-in-up animation-delay-200'
+            'min-h-touch animate-fade-in-up',
+            delay
           )}
         >
-          <Package className="w-5 h-5" />
-          <span className="text-xs font-medium">Stock Lookup</span>
-        </button>
-
-        {/* Log Issue - Secondary action */}
-        <button
-          onClick={handleLogIssue}
-          className={cn(
-            'flex flex-col items-center justify-center gap-1.5',
-            'py-4 px-2 rounded-2xl',
-            'bg-white text-foreground',
-            'shadow-card hover:shadow-card-hover hover:-translate-y-0.5',
-            'active:scale-[0.97] transition-all duration-200',
-            'min-h-touch',
-            'animate-fade-in-up animation-delay-250'
-          )}
-        >
-          <Plus className="w-5 h-5" />
-          <span className="text-xs font-medium">Log Issue</span>
-        </button>
-      </div>
-
-      {/* My Schedule - Full width row */}
-      <button
-        onClick={handleSchedule}
-        className={cn(
-          'flex items-center justify-between w-full',
-          'py-3.5 px-4 rounded-2xl',
-          'bg-white text-foreground',
-          'shadow-card hover:shadow-card-hover hover:-translate-y-0.5',
-          'active:scale-[0.99] transition-all duration-200',
-          'animate-fade-in-up animation-delay-300'
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Calendar className="w-5 h-5 text-primary" />
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            <Icon className="w-4.5 h-4.5 text-primary" />
           </div>
-          <span className="text-sm font-semibold">My Schedule</span>
-        </div>
-        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-      </button>
+          <div className="flex flex-col items-start min-w-0">
+            <span className="text-sm font-medium leading-tight truncate">{label}</span>
+            {key === 'schedule' && shift && shift.shiftStart !== '--:--' && (
+              <span className="text-xs text-muted-foreground leading-none mt-0.5">
+                {shift.shiftStart}–{shift.shiftEnd}
+              </span>
+            )}
+          </div>
+        </button>
+      ))}
     </div>
   )
 }

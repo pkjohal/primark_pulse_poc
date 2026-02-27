@@ -12,6 +12,7 @@ const HomePage = lazy(() => import('./pages/Home/HomePage'))
 const StaffPage = lazy(() => import('./pages/Staff/StaffPage'))
 const JobsPage = lazy(() => import('./pages/Jobs/JobsPage'))
 const StockPage = lazy(() => import('./pages/Stock/StockPage'))
+const ScanStockPage = lazy(() => import('./pages/ScanStock/ScanStockPage'))
 const CompliancePage = lazy(() => import('./pages/Compliance/CompliancePage'))
 const QueuesPage = lazy(() => import('./pages/Queues/QueuesPage'))
 const InsightsPage = lazy(() => import('./pages/Insights/InsightsPage'))
@@ -48,6 +49,7 @@ function App() {
                   <Route path="/team" element={<TeamPage />} />
                   <Route path="/jobs" element={<JobsPage />} />
                   <Route path="/stock" element={<StockPage />} />
+                  <Route path="/scan-stock" element={<ScanStockPage />} />
                   <Route path="/compliance" element={<CompliancePage />} />
                   <Route path="/queues" element={<QueuesPage />} />
                   <Route path="/insights" element={<InsightsPage />} />

@@ -17,14 +17,14 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          // Primark Cyan scale - vibrant, energetic
-          50: '#e6f7fb',
+          // Primark Blue scale
+          50: '#E6F7FB',
           100: '#b3e8f5',
           200: '#80d9ee',
           300: '#4dcae8',
           400: '#26bde2',
-          500: '#00AFDB',  // Main Primark Cyan
-          600: '#008cb0',
+          500: '#0DAADB',  // Main Primark Blue
+          600: '#0987A8',
           700: '#006986',
           800: '#00465b',
           900: '#002331',
@@ -53,20 +53,37 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Primark brand colors
+        primark: {
+          blue: '#0DAADB',
+          'blue-dark': '#0987A8',
+          'blue-light': '#E6F7FB',
+        },
+        navy: '#1A1F36',
+        charcoal: '#374151',
+        'mid-grey': '#6B7280',
+        'light-grey': '#F3F4F6',
+        'border-grey': '#E5E7EB',
         // Semantic colors for Primark
         critical: {
           DEFAULT: '#ef4444',
           light: '#fef2f2',
           foreground: '#ffffff',
         },
+        danger: {
+          DEFAULT: '#EF4444',
+          bg: '#FEF2F2',
+        },
         warning: {
           DEFAULT: '#f59e0b',
           light: '#fffbeb',
+          bg: '#FFFBEB',
           foreground: '#ffffff',
         },
         success: {
-          DEFAULT: '#22c55e',
+          DEFAULT: '#10B981',
           light: '#f0fdf4',
+          bg: '#ECFDF5',
           foreground: '#ffffff',
         },
         ai: {

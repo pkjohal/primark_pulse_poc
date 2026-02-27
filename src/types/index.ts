@@ -65,7 +65,7 @@ export type EscalationReason = 'cant-complete' | 'need-help' | 'equipment-issue'
 
 export type JobPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type JobStatus = 'unassigned' | 'pending' | 'in-progress' | 'complete' | 'escalated';
-export type JobFilter = 'all' | 'my-jobs' | 'unassigned';
+export type JobFilter = 'all' | 'my-jobs' | 'unassigned' | 'done' | 'my-done';
 
 // Task Management
 export interface Task {
@@ -327,6 +327,7 @@ export interface StoreMetrics {
   openTasks: number;
   criticalTasks: number;
   complianceProgress: number;
+  stockAlerts: number;
 }
 
 // AI Suggestions
@@ -444,7 +445,7 @@ export interface Notification {
 }
 
 // Navigation & UI State
-export type NavItem = 'home' | 'staff' | 'jobs' | 'stock' | 'compliance' | 'team';
+export type NavItem = 'home' | 'staff' | 'jobs' | 'stock' | 'scan-stock' | 'compliance' | 'team';
 
 export interface UIState {
   activeNav: NavItem;
