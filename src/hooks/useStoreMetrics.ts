@@ -21,7 +21,7 @@ export function useStoreMetrics() {
           .from('jobs')
           .select('id, priority')
           .eq('store_id', storeId!)
-          .neq('status', 'completed'),
+          .neq('status', 'complete'),
 
         // Checklists for compliance score
         supabase
